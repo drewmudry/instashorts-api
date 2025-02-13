@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from typing import Optional, List
@@ -12,7 +12,7 @@ from config.settings import settings
 from services.dynamo import DynamoDBService
 from models.videos import Video, VideoStatus
 from models.series import Series
-from tasks.video_processor import process_video
+from tasks.video_processor import process_video_background
 
 app = FastAPI(title="InstaShorts API")
 
@@ -78,8 +78,10 @@ async def root():
     return {"message": "Welcome to Instashorts!"}
 
 # Video routes
+# Just replace your existing video creation route with this one
 @app.post("/videos/", response_model=Video)
 async def create_video(
+    background_tasks: BackgroundTasks,
     title: str,
     description: Optional[str] = None,
     user_id: str = Depends(get_current_user)
@@ -95,8 +97,14 @@ async def create_video(
     }
     
     video = await dynamo_service.create_video(video_data)
-    # Start video processing
-    process_video.delay(video['id'], user_id)
+    
+    # Start background processing instead of Celery task
+    await process_video_background(
+        background_tasks,
+        video['id'],
+        user_id
+    )
+    
     return video
 
 @app.get("/videos/{video_id}", response_model=Video)
