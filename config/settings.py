@@ -7,13 +7,12 @@ class Settings(BaseSettings):
     google_client_secret: str
     aws_access_key_id: str
     aws_secret_access_key: str
-    aws_region: str = "us-east-1"
-    redis_url: str = "redis://localhost:6379/0"
-    env: str
+    aws_region: str
+    redis_url: str 
     
     
     class Config:
-        env_file = ".env"
+        env_file = '../.env'
 
 @lru_cache()
 def get_settings():

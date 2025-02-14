@@ -60,7 +60,7 @@ async def google_auth_callback(request: Request):
         token = await oauth.google.authorize_access_token(request)
         user = await oauth.google.parse_id_token(request, token)
         request.session['user'] = user
-        return RedirectResponse(url="/docs")  # Redirect to your frontend
+        return RedirectResponse(url="http://localhost:3000")  # Your frontend URL
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
