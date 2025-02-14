@@ -12,6 +12,7 @@ from config.settings import settings
 from services.dynamo import DynamoDBService
 from models.videos import Video, VideoStatus
 from models.series import Series
+from models.user import User
 from tasks.video_processor import process_video_background
 
 app = FastAPI(title="InstaShorts API")
@@ -28,12 +29,16 @@ app.add_middleware(SessionMiddleware, secret_key="your-secret-key")  # Change in
 
 # Initialize OAuth
 oauth = OAuth()
+oauth = OAuth()
 oauth.register(
     name='google',
     client_id=settings.google_client_id,
     client_secret=settings.google_client_secret,
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'}
+    client_kwargs={
+        'scope': 'openid email profile',
+        'prompt': 'select_account'
+    }
 )
 
 dynamo_service = DynamoDBService()
@@ -51,17 +56,25 @@ async def get_current_user(request: Request):
 # Auth routes
 @app.get("/login/google")
 async def google_login(request: Request):
-    redirect_uri = request.url_for('google_auth_callback')
+    redirect_uri = "http://localhost:8000/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/google/callback")
 async def google_auth_callback(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)
-        user = await oauth.google.parse_id_token(request, token)
-        request.session['user'] = user
-        return RedirectResponse(url="http://localhost:3000")  # Your frontend URL
+        userinfo = token.get('userinfo')
+        if userinfo:
+            user = User.from_google_oauth(userinfo)
+            request.session['user'] = user.model_dump()
+            return RedirectResponse(url="http://localhost:3000/dashboard")
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to get user info"
+            )
     except Exception as e:
+        print(f"Auth error: {str(e)}")
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"error": str(e)}
