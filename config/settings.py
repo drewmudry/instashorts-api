@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     google_client_secret: str
     aws_access_key_id: str
     aws_secret_access_key: str
-    aws_region: str
+    aws_region: str = "us-east-1"
     redis_url: str 
     
     

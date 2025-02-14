@@ -59,6 +59,7 @@ async def google_login(request: Request):
     redirect_uri = "http://localhost:8000/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
+# main.py
 @app.get("/auth/google/callback")
 async def google_auth_callback(request: Request):
     try:
@@ -66,7 +67,13 @@ async def google_auth_callback(request: Request):
         userinfo = token.get('userinfo')
         if userinfo:
             user = User.from_google_oauth(userinfo)
+            
+            # Create or update user in DynamoDB
+            await dynamo_service.create_or_update_user(user.model_dump())
+            
+            # Store user info in session
             request.session['user'] = user.model_dump()
+            
             return RedirectResponse(url="http://localhost:3000/dashboard")
         else:
             raise HTTPException(
