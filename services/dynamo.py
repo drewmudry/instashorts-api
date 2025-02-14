@@ -50,7 +50,6 @@ class DynamoDBService:
     async def get_user_videos(self, user_id: str, last_evaluated_key: Optional[Dict] = None) -> Dict[str, Any]:
         """Get all videos for a user with pagination"""
         try:
-            print("getting query params")
             query_params = {
                 'IndexName': 'user-videos-index',
                 'KeyConditionExpression': '#uid = :uid',
@@ -66,8 +65,6 @@ class DynamoDBService:
 
             if last_evaluated_key:
                 query_params['ExclusiveStartKey'] = last_evaluated_key
-            print(query_params)
-            print("trying to query table")
             response = self.video_table.query(**query_params)
             return {
                 'items': response.get('Items', []),
