@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -8,9 +7,7 @@ from middleware.auth import AuthMiddleware
 from routes import auth, videos, series
 
 app = FastAPI(title="InstaShorts API")
-
-# Middleware
-app.add_middleware(AuthMiddleware)  # This needs to be first since it depends on session
+app.add_middleware(AuthMiddleware)
 app.add_middleware(SessionMiddleware, secret_key="your-secret-key")  # Change in production
 app.add_middleware(
     CORSMiddleware,
@@ -32,11 +29,9 @@ oauth.register(
         'prompt': 'select_account'
     }
 )
-
-# Store OAuth instance in app state
 app.oauth = oauth
 
-# Include routers
+# Included routers
 app.include_router(auth.router)
 app.include_router(videos.router)
 app.include_router(series.router)
