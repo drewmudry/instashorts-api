@@ -11,8 +11,8 @@ class DynamoDBService:
             'dynamodb',
             aws_access_key_id=settings.aws_access_key_id,
             aws_secret_access_key=settings.aws_secret_access_key,
-            # region_name=settings.aws_region
-            region_name=region
+            region_name=settings.aws_region
+            # region_name=region
         )
         self.video_table = self.dynamodb.Table('instashorts_videos')
         self.series_table = self.dynamodb.Table('instashorts_series')
