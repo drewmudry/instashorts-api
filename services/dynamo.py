@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 from typing import Optional, List, Any, Dict
 from datetime import datetime, timezone
 from config.settings import settings
-from models.videos import VideoStatus, VideoDetail
+from models.videos import VideoStatus, VideoDetail, GeneratedImage, ImagePrompt
 from uuid import uuid4
 
 class DynamoDBService:
