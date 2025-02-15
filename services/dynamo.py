@@ -3,6 +3,8 @@ from botocore.exceptions import ClientError
 from typing import Optional, List, Any, Dict
 from datetime import datetime, timezone
 from config.settings import settings
+from models.videos import VideoStatus
+import uuid
 
 class DynamoDBService:
     def __init__(self):
@@ -18,27 +20,20 @@ class DynamoDBService:
         self.series_table = self.dynamodb.Table('instashorts_series')
         self.users_table = self.dynamodb.Table('instashorts_users')
 
+
     async def create_video(self, video_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new video entry in DynamoDB"""
-        required_fields = {
-            'id': video_data['id'],
-            'user_id': video_data['user_id'],
-            'title': video_data['title'],
-            'status': video_data['status'],
-            'created_at': video_data.get('created_at', datetime.now(timezone.utc).isoformat()),
-            'updated_at': datetime.now(timezone.utc).isoformat()
-        }
-        
+        """Create a new video entry in DynamoDB with initial fields"""
         video_item = {
-            **required_fields,
-            'description': video_data.get('description', ''),
-            'script': video_data.get('script', ''),
-            'voice_file_url': video_data.get('voice_file_url', ''),
-            'image_prompts': video_data.get('image_prompts', []),
-            'image_urls': video_data.get('image_urls', []),
-            'final_video_url': video_data.get('final_video_url', ''),
-            'series_id': video_data.get('series_id', ''),
-            'error': video_data.get('error', '')
+            'id': str(uuid.uuid4()),
+            'user_id': video_data['user_id'],
+            'theme': video_data['theme'],
+            'voice': video_data['voice'],
+            'creation_status': VideoStatus.PENDING,
+            'title': '',  # Will be populated by script generation
+            'script': '',  # Will be populated by script generation
+            'series': video_data.get('series', None),
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat()
         }
 
         try:
@@ -47,8 +42,8 @@ class DynamoDBService:
         except ClientError as e:
             raise Exception(f"Could not create video: {str(e)}")
         
-    async def get_user_videos(self, user_id: str, last_evaluated_key: Optional[Dict] = None) -> Dict[str, Any]:
-        """Get all videos for a user with pagination"""
+    async def get_user_videos(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all videos for a user with only list view fields"""
         try:
             query_params = {
                 'IndexName': 'user-videos-index',
@@ -59,19 +54,30 @@ class DynamoDBService:
                 'ExpressionAttributeValues': {
                     ':uid': user_id
                 },
+                'ProjectionExpression': 'id, user_id, theme, voice, title, creation_status, final_url, series, created_at',
                 'ScanIndexForward': False,
                 'Limit': 20
             }
 
-            if last_evaluated_key:
-                query_params['ExclusiveStartKey'] = last_evaluated_key
             response = self.video_table.query(**query_params)
-            return {
-                'items': response.get('Items', []),
-                'last_evaluated_key': response.get('LastEvaluatedKey')
-            }
+            return response.get('Items', [])  # Just return the items list
         except ClientError as e:
             raise Exception(f"Could not retrieve videos: {str(e)}")
+        
+        
+    async def get_video(self, video_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single video with all fields"""
+        try:
+            response = self.video_table.get_item(
+                Key={
+                    'id': video_id,
+                    'user_id': user_id
+                }
+            )
+            return response.get('Item')
+        except ClientError as e:
+            raise Exception(f"Could not retrieve video: {str(e)}")
+     
             
     async def create_or_update_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
@@ -88,6 +94,7 @@ class DynamoDBService:
         except ClientError as e:
             raise Exception(f"Could not create/update user: {str(e)}")
         
+       
     async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         try:
             response = self.users_table.get_item(
@@ -96,18 +103,6 @@ class DynamoDBService:
             return response.get('Item')
         except ClientError as e:
             raise Exception(f"Could not retrieve user: {str(e)}")
-
-    async def get_video(self, video_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-        try:
-            response = self.video_table.get_item(
-                Key={
-                    'id': video_id,
-                    'user_id': user_id
-                }
-            )
-            return response.get('Item')
-        except ClientError as e:
-            raise Exception(f"Could not retrieve video: {str(e)}")
 
     async def update_video(self, video_id: str, user_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
         update_expression = "SET "
@@ -145,7 +140,7 @@ class DynamoDBService:
         except ClientError as e:
             raise Exception(f"Could not delete video: {str(e)}")
 
-    # Similar methods for Series
+
     async def create_series(self, series_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             self.series_table.put_item(Item=series_data)
