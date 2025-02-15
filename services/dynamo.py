@@ -42,6 +42,7 @@ class DynamoDBService:
         except ClientError as e:
             raise Exception(f"Could not create video: {str(e)}")
         
+        
     async def get_user_videos(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all videos for a user with only list view fields"""
         try:
