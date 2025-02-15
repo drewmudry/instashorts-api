@@ -6,17 +6,27 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        if request.url.path in ["/", "/login/google", "/auth/google/callback"]:
+        if request.method == "OPTIONS" or request.url.path in ["/", "/login/google", "/auth/google/callback"]:
             return await call_next(request)
 
-        user = request.session.get("user")
-        if not user:
+        try:
+            print("Cookies in request:", request.cookies)  # Debug
+            print("Session data:", request.session)  # Debug
+            
+            user = request.session.get("user")
+            print("User from session:", user)  # Debug
+            
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not authenticated"
+                )
+
+            return await call_next(request)
+            
+        except Exception as e:
+            print(f"Auth error: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated"
+                detail="Authentication error"
             )
-
-        request.state.user = user
-        
-        response = await call_next(request)
-        return response

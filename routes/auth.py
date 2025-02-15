@@ -4,7 +4,7 @@ from models.user import User
 from services.dynamo import DynamoDBService
 from config.settings import settings
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 dynamo_service = DynamoDBService()
 
 @router.get("/login/google")
@@ -38,3 +38,32 @@ async def google_auth_callback(request: Request):
 async def logout(request: Request):
     request.session.pop('user', None)
     return {"message": "Successfully logged out"}
+
+
+async def get_current_user(request: Request):
+    print("All cookies:", request.cookies)  # This will show the raw cookie
+    print("Session data:", request.session) # This will show the decrypted session
+    user = request.session.get("user")
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    return user
+
+@router.get("/me")  # This will make the endpoint available at /me
+async def get_current_user(request: Request):
+    try:
+        user = request.session.get("user")
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated"
+            )
+        return user
+    except Exception as e:
+        print(f"Error in /me: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
