@@ -3,7 +3,7 @@ from typing import Optional
 import uuid
 from typing import List
 from datetime import datetime
-from models.videos import VideoCreate, VideoDetail, VideoList, VideoStatus
+from models.videos import VideoCreate, VideoDetail, VideoList, VideoStatus, VideoRequest
 from services.dynamo import DynamoDBService
 from dependencies.auth import get_current_user
 from tasks.video_processor import process_video_background
@@ -13,15 +13,14 @@ dynamo_service = DynamoDBService()
 
 @router.post("/", response_model=VideoCreate)
 async def create_video(
+    request: VideoRequest,  # This will read from request body
     background_tasks: BackgroundTasks,
-    video_theme: str,
-    video_voice: str,
     user_id: str = Depends(get_current_user)
 ):
     video_data = {
         "user_id": user_id,
-        "theme": video_theme,
-        "voice": video_voice,
+        "topic": request.topic,
+        "voice": request.voice,
         "status": VideoStatus.PENDING,
         "script": "",  # Will be populated by background task
         "title": ""   # Will be populated by background task

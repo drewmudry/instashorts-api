@@ -4,7 +4,7 @@ from typing import Optional, List, Any, Dict
 from datetime import datetime, timezone
 from config.settings import settings
 from models.videos import VideoStatus
-import uuid
+from uuid import uuid4
 
 class DynamoDBService:
     def __init__(self):
@@ -24,9 +24,9 @@ class DynamoDBService:
     async def create_video(self, video_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new video entry in DynamoDB with initial fields"""
         video_item = {
-            'id': str(uuid.uuid4()),
+            'id': str(uuid4()),
             'user_id': video_data['user_id'],
-            'theme': video_data['theme'],
+            'topic': video_data['topic'],
             'voice': video_data['voice'],
             'creation_status': VideoStatus.PENDING,
             'title': '',  # Will be populated by script generation
@@ -55,7 +55,7 @@ class DynamoDBService:
                 'ExpressionAttributeValues': {
                     ':uid': user_id
                 },
-                'ProjectionExpression': 'id, user_id, theme, voice, title, creation_status, final_url, series, created_at',
+                'ProjectionExpression': 'id, user_id, topic, voice, title, creation_status, final_url, series, created_at',
                 'ScanIndexForward': False,
                 'Limit': 20
             }

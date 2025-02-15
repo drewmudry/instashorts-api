@@ -22,8 +22,9 @@ class GeneratedImage(BaseModel):
     url: str
 
 class VideoBase(BaseModel):
+    id: str
     user_id: str
-    theme: str
+    topic: str
     voice: str
     creation_status: VideoStatus
     title: Optional[str] = None
@@ -32,6 +33,11 @@ class VideoBase(BaseModel):
 
 class VideoCreate(VideoBase):
     script: str
+    
+    
+class VideoRequest(BaseModel):
+    topic: str
+    voice: str
 
 
 class VideoList(VideoBase):
