@@ -9,9 +9,11 @@ from services.video_generation.prompts import generate_prompts
 from services.video_generation.images import generate_images
 from services.video_generation.compiler import compile_video
 
+
 # Keep Celery just for video compilation
 celery = Celery('video_compiler', broker=settings.redis_url)
 dynamo_service = DynamoDBService()
+
 
 async def process_video_background(
     background_tasks: BackgroundTasks,
@@ -31,6 +33,7 @@ async def process_video_background(
         await update_video_status(video_id, user_id, VideoStatus.FAILED, str(e))
         raise e
 
+
 # Changed to internal helper functions with underscore prefix
 async def _generate_script_task(video_id: str, user_id: str):
     """Generate script and chain the next task"""
@@ -45,6 +48,7 @@ async def _generate_script_task(video_id: str, user_id: str):
         await update_video_status(video_id, user_id, VideoStatus.FAILED, str(e))
         raise e
 
+
 async def _generate_voice_task(video_id: str, user_id: str):
     """Generate voice and chain the next task"""
     try:
@@ -57,6 +61,7 @@ async def _generate_voice_task(video_id: str, user_id: str):
     except Exception as e:
         await update_video_status(video_id, user_id, VideoStatus.FAILED, str(e))
         raise e
+
 
 async def _generate_prompts_task(video_id: str, user_id: str):
     """Generate prompts and chain the next task"""
@@ -71,6 +76,7 @@ async def _generate_prompts_task(video_id: str, user_id: str):
         await update_video_status(video_id, user_id, VideoStatus.FAILED, str(e))
         raise e
 
+
 async def _generate_images_task(video_id: str, user_id: str):
     """Generate images and chain to final compilation"""
     try:
@@ -84,6 +90,7 @@ async def _generate_images_task(video_id: str, user_id: str):
         await update_video_status(video_id, user_id, VideoStatus.FAILED, str(e))
         raise e
 
+
 async def update_video_status(video_id: str, user_id: str, status: VideoStatus, error: str = None):
     """Helper function to update video status"""
     update_data = {"status": status}
@@ -91,10 +98,12 @@ async def update_video_status(video_id: str, user_id: str, status: VideoStatus, 
         update_data["error"] = error
     await dynamo_service.update_video(video_id, user_id, update_data)
 
+
 async def _start_compilation(video_id: str, user_id: str):
     """Start the Celery task for video compilation"""
     await update_video_status(video_id, user_id, VideoStatus.COMPILING)
     compile_video_task.delay(video_id, user_id)
+
 
 # The heavy computation Celery task
 @celery.task
