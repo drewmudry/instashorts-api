@@ -12,13 +12,13 @@ class ScriptGenerationError(Exception):
     """Custom exception for script generation errors"""
     pass
 
-async def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBService) -> Tuple[str, str]:
+def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBService) -> Tuple[str, str]:
     """
     Generate a script and title for a video using Gemini AI.
     Returns a tuple of (script, title).
     """
     try:
-        video = await dynamo.get_video(video_id, user_id)
+        video = dynamo.get_video(video_id, user_id)
         if not video:
             raise ScriptGenerationError(f"Video {video_id} not found")
         client = genai.Client(api_key=settings.gemini_api_key)
@@ -68,9 +68,8 @@ async def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoD
                     'title': content['title'],
                     'script': content['script']
                 }                
-                await dynamo.update_video(video_id, update_data)
+                dynamo.update_video(video_id, update_data)
                 
-                return content['script'], content['title']
                 
             except json.JSONDecodeError as e:
                 logger.warning(f"Attempt {attempt + 1}: Invalid JSON response: {str(e)}")

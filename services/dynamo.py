@@ -22,7 +22,7 @@ class DynamoDBService:
 
 
     '''VIDEO RELATED OPERATIONS'''
-    async def create_video(self, video_data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_video(self, video_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new video entry in DynamoDB with initial fields"""
         video_item = {
             'id': str(uuid4()),
@@ -44,7 +44,7 @@ class DynamoDBService:
             raise Exception(f"Could not create video: {str(e)}")
         
         
-    async def get_user_videos(self, user_id: str) -> List[Dict[str, Any]]:
+    def get_user_videos(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all videos for a user with only list view fields"""
         try:
             query_params = {
@@ -67,7 +67,7 @@ class DynamoDBService:
             raise Exception(f"Could not retrieve videos: {str(e)}")
         
         
-    async def get_video(self, video_id: str, user_id: str):
+    def get_video(self, video_id: str, user_id: str):
         try:
             response = self.video_table.get_item(
                 Key={
@@ -82,7 +82,7 @@ class DynamoDBService:
             raise Exception(f"Could not retrieve video: {str(e)}")
 
 
-    async def update_video(self, video_id: str, update_data: Dict[str, Any]) -> VideoDetail:
+    def update_video(self, video_id: str, update_data: Dict[str, Any]) -> VideoDetail:
         update_expression = "SET "
         expression_attribute_values = {}
         expression_attribute_names = {}
@@ -140,7 +140,7 @@ class DynamoDBService:
             raise Exception(f"Could not update video: {str(e)}")
 
 
-    async def delete_video(self, video_id: str, user_id: str) -> bool:
+    def delete_video(self, video_id: str, user_id: str) -> bool:
         try:
             self.video_table.delete_item(
                 Key={

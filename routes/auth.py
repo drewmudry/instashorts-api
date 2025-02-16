@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, status
 from starlette.responses import RedirectResponse, JSONResponse
 from models.user import User
 from services.dynamo import DynamoDBService
-from config.settings import settings
+from config.settings import Settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 dynamo_service = DynamoDBService()

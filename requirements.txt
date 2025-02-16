@@ -65,3 +65,5 @@ wcwidth==0.2.13
 websockets==14.2
 fastapi[standard]
 google-genai
+celery
+redis
