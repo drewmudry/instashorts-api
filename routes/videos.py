@@ -27,7 +27,9 @@ async def create_video(
     }
     
     video = await dynamo.create_video(video_data)
-    await process_video_background(background_tasks, video['id'], user_id, dynamo)
+    await process_video_background(background_tasks, video['id'], user_id, dynamo) # this is NOT ASYNC
+    # i think it needs to be this instead
+    # background_tasks.add_task(process_video_background, video['id'], user_id, dynamo) 
     return video
 
 @router.get("/{video_id}", response_model=VideoDetail)

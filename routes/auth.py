@@ -12,7 +12,7 @@ async def google_login(request: Request):
     redirect_uri = "http://localhost:8000/auth/google/callback"
     return await request.app.oauth.google.authorize_redirect(request, redirect_uri)
 
-@router.get("/auth/google/callback")
+@router.get("/google/callback")
 async def google_auth_callback(request: Request):
     try:
         token = await request.app.oauth.google.authorize_access_token(request)
