@@ -167,7 +167,7 @@ def start_video_pipeline(video_id: str, user_id: str):
     """Start the Celery pipeline for video generation"""
     print("we in start_video_pipeline")
     pipeline = chain(
-        generate_script_task.s(video_id, user_id),
+        generate_script_task.s(video_id, user_id), # done? but slow... 
         generate_voice_task.s(),  # No arguments here
         generate_prompts_task.s(), # No arguments here
         generate_images_task.s(), # No arguments here
