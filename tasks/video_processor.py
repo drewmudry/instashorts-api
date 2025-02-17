@@ -26,7 +26,7 @@ def generate_script_task(self, video_id: str, user_id: str):
         )
 
         # Generate script and title
-        # generate_script_and_title(video_id, user_id, dynamo_service)
+        generate_script_and_title(video_id, user_id, dynamo_service)
 
         dynamo_service.update_video(
             video_id=video_id,
