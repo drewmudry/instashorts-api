@@ -4,12 +4,20 @@ from enum import Enum
 from datetime import datetime
 
 class VideoStatus(str, Enum):
-    PENDING = "pending"
-    GENERATING_SCRIPT = "generating_script"
-    GENERATING_VOICE = "generating_voice"
-    GENERATING_PROMPTS = "generating_prompts"
-    GENERATING_IMAGES = "generating_images"
-    COMPILING = "compiling"
+    PENDING = "Pending"
+    GENERATING_SCRIPT = "Writing Script"
+    SCRIPT_COMPLETE = "Script Completed"
+    
+    GENERATING_VOICE = "Generating Audio"
+    VOICE_COMPLETE = "Narration Completed"
+    
+    GENERATING_PROMPTS = "Brainstorming Images"
+    PROMPTS_COMPLETE = "Finalizing Content"
+    
+    GENERATING_IMAGES = "Crafting Images"
+    IMAGES_COMPLETE = "Images Finished"
+    
+    COMPILING = "Video Rendering"
     COMPLETED = "completed"
     FAILED = "failed"
 

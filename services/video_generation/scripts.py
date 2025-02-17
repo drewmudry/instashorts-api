@@ -13,17 +13,12 @@ class ScriptGenerationError(Exception):
     pass
 
 def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBService) -> Tuple[str, str]:
-    """
-    Generate a script and title for a video using Gemini AI.
-    Returns a tuple of (script, title).
-    """
     try:
         video = dynamo.get_video(video_id, user_id)
         if not video:
             raise ScriptGenerationError(f"Video {video_id} not found")
         client = genai.Client(api_key=settings.gemini_api_key)
         
-        # Maximum retries for getting valid JSON
         max_retries = 3
         attempt = 0
         
@@ -41,17 +36,20 @@ def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBServi
                 )
                 
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-1.5-pro",
                     contents=prompt
                 )
                 
-                # Get the response text and print it for debugging
+                # Get the response text and clean it
                 response_text = response.text
-
+                
+                # Remove markdown code blocks if present
+                response_text = response_text.replace('```json\n', '').replace('\n```', '')
+                
                 try:
                     content = json.loads(response_text)
                 except json.JSONDecodeError:
-                    # Try to extract JSON if it's wrapped in other text
+                    # If direct parsing fails, try to extract JSON
                     import re
                     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                     if json_match:
@@ -62,7 +60,6 @@ def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBServi
                 # Validate the response has required fields
                 if not all(key in content for key in ['title', 'script']):
                     raise json.JSONDecodeError("Missing required fields", response_text, 0)
-                
 
                 update_data = {
                     'title': content['title'],
@@ -70,6 +67,7 @@ def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBServi
                 }                
                 dynamo.update_video(video_id, update_data)
                 
+                return content['title'], content['script']
                 
             except json.JSONDecodeError as e:
                 logger.warning(f"Attempt {attempt + 1}: Invalid JSON response: {str(e)}")

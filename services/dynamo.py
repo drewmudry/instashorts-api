@@ -29,7 +29,7 @@ class DynamoDBService:
             'user_id': video_data['user_id'],
             'topic': video_data['topic'],
             'voice': video_data['voice'],
-            'creation_status': VideoStatus.PENDING,
+            'creation_status': VideoStatus.PENDING.value,
             'title': '',  # Will be populated by script generation
             'script': '',  # Will be populated by script generation
             'series': video_data.get('series', None),
@@ -62,7 +62,21 @@ class DynamoDBService:
             }
 
             response = self.video_table.query(**query_params)
-            return response.get('Items', [])  # Just return the items list
+            items = response.get('Items', [])
+            
+            # Transform each item to ensure creation_status matches enum values
+            for item in items:
+                # If creation_status exists in the item
+                if 'creation_status' in item:
+                    # Try to find matching enum value
+                    try:
+                        # This will convert any stored value to the correct enum value
+                        item['creation_status'] = VideoStatus(item['creation_status']).value
+                    except ValueError:
+                        # If conversion fails, set to a default status
+                        item['creation_status'] = VideoStatus.PENDING.value
+            
+            return items
         except ClientError as e:
             raise Exception(f"Could not retrieve videos: {str(e)}")
         
@@ -126,7 +140,7 @@ class DynamoDBService:
                 user_id=video_data['user_id'],
                 topic=video_data['topic'],
                 voice=video_data['voice'],
-                creation_status=VideoStatus(video_data['creation_status']),
+                creation_status=VideoStatus(video_data['creation_status']).value,
                 title=video_data.get('title'),
                 series=video_data.get('series'),
                 script=video_data['script'],
