@@ -6,7 +6,6 @@ from config.settings import settings
 from routes import auth, videos, series
 
 app = FastAPI(title="InstaShorts API")
-print(f"FastAPI Redis URL: {settings.redis_url}")
 
 # Initialize OAuth
 oauth = OAuth()

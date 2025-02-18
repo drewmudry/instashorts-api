@@ -15,7 +15,3 @@ celery_app.conf.update({
         'ssl_cert_reqs': CERT_NONE
     }
 })
-
-# Debug print
-print(f"Celery broker URL: {celery_app.conf.broker_url}")
-print(f"Celery backend URL: {celery_app.conf.result_backend}")
