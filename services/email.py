@@ -1,11 +1,19 @@
-def send_welcome_email(email: str, full_name: str):
-    print(f"Sending welcome email to {email} ({full_name})")
-    # In a real application, you would use an email service here
-    # For example, using 'smtplib' for SMTP, or libraries for
-    # SendGrid, Mailgun, AWS SES, etc.
-    # Example placeholder for actual email sending:
-    # try:
-    #     # Email sending logic here
-    #     print("Email sent successfully")
-    # except Exception as e:
-    #     print(f"Error sending email: {e}")
+import os
+import resend
+from config.settings import settings
+
+resend.api_key = settings.resend_api_key
+
+def send_welcome_email(email: str):
+    try:
+        params: resend.Emails.SendParams = {
+            "from": "InstaShorts <notifications@email.instashorts.io>",
+            "to": [email],
+            "subject": "Welcome to InstaShorts!",
+            "html": "<strong>im gay!</strong>",
+        }
+        
+        email_response = resend.Emails.send(params)
+        return email_response
+    except Exception as e:
+        print(f"Failed to send welcome email to {email}: {str(e)}")

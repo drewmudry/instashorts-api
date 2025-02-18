@@ -59,12 +59,10 @@ class DynamoDBService:
                 'Limit': 20
             }
             
-            print("Query params:", query_params)  # Debug print
             
             response = self.video_table.query(**query_params)
             return response.get('Items', [])
         except ClientError as e:
-            print("Full error:", e.response)  # Debug print
             raise Exception(f"Could not retrieve videos: {str(e)}")
         
         

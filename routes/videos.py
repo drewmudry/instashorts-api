@@ -10,6 +10,7 @@ from models.videos import VideoCreate, VideoDetail, VideoList, VideoStatus, Vide
 from services.dynamo import DynamoDBService
 from dependencies.auth import get_current_user
 from tasks.video_processor import start_video_pipeline
+from services.email import send_welcome_email
 
 
 router = APIRouter(prefix="/videos", tags=["videos"])
