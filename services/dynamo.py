@@ -8,13 +8,11 @@ from uuid import uuid4
 
 class DynamoDBService:
     def __init__(self):
-        region = "us-east-1"
         self.dynamodb = boto3.resource(
             'dynamodb',
             aws_access_key_id=settings.aws_access_key_id,
             aws_secret_access_key=settings.aws_secret_access_key,
             region_name=settings.aws_region
-            # region_name=region
         )
         self.video_table = self.dynamodb.Table('instashorts_videos')
         self.series_table = self.dynamodb.Table('instashorts_series')
@@ -60,24 +58,13 @@ class DynamoDBService:
                 'ScanIndexForward': False,
                 'Limit': 20
             }
-
+            
+            print("Query params:", query_params)  # Debug print
+            
             response = self.video_table.query(**query_params)
-            items = response.get('Items', [])
-            
-            # Transform each item to ensure creation_status matches enum values
-            for item in items:
-                # If creation_status exists in the item
-                if 'creation_status' in item:
-                    # Try to find matching enum value
-                    try:
-                        # This will convert any stored value to the correct enum value
-                        item['creation_status'] = VideoStatus(item['creation_status']).value
-                    except ValueError:
-                        # If conversion fails, set to a default status
-                        item['creation_status'] = VideoStatus.PENDING.value
-            
-            return items
+            return response.get('Items', [])
         except ClientError as e:
+            print("Full error:", e.response)  # Debug print
             raise Exception(f"Could not retrieve videos: {str(e)}")
         
         
@@ -176,20 +163,45 @@ class DynamoDBService:
             return response.get('Item')
         except ClientError as e:
             raise Exception(f"Could not retrieve user: {str(e)}")
-        
-                
-    async def create_or_update_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+
+
+
+    async def create_or_update_user(self, user_data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+        is_new_user = False
+        existing_user = await self.get_user(user_data['id'])
+        current_time = datetime.now(timezone.utc).isoformat()
+
         try:
-            self.users_table.put_item(Item={
-                'id': user_data['id'],
-                'email': user_data['email'],
-                'full_name': user_data['full_name'],
-                'picture': user_data.get('picture', ''),
-                'last_login': datetime.now(timezone.utc).isoformat(),
-                'created_at': user_data.get('created_at', datetime.now(timezone.utc).isoformat()),
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            })
-            return user_data
+            if not existing_user:
+                is_new_user = True
+                self.users_table.put_item(Item={
+                    'id': user_data['id'],
+                    'email': user_data['email'],
+                    'full_name': user_data['full_name'],
+                    'picture': user_data.get('picture', ''),
+                    'last_login': current_time,
+                    'created_at': current_time,
+                    'updated_at': current_time
+                })
+            else:
+                self.users_table.update_item(
+                    Key={'id': user_data['id']},
+                    UpdateExpression="""
+                        set email=:email,
+                            full_name=:full_name,
+                            picture=:picture,
+                            last_login=:last_login,
+                            updated_at=:updated_at
+                    """,
+                    ExpressionAttributeValues={
+                        ':email': user_data['email'],
+                        ':full_name': user_data['full_name'],
+                        ':picture': user_data.get('picture', ''),
+                        ':last_login': current_time,
+                        ':updated_at': current_time
+                    }
+                )
+            return user_data, is_new_user
         except ClientError as e:
             raise Exception(f"Could not create/update user: {str(e)}")
         

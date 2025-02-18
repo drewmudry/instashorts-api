@@ -1,8 +1,10 @@
+# auth.py
 from fastapi import APIRouter, Request, HTTPException, status
 from starlette.responses import RedirectResponse, JSONResponse
 from models.user import User
 from services.dynamo import DynamoDBService
 from config.settings import Settings
+from services.email import send_welcome_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 dynamo_service = DynamoDBService()
@@ -19,8 +21,10 @@ async def google_auth_callback(request: Request):
         userinfo = token.get('userinfo')
         if userinfo:
             user = User.from_google_oauth(userinfo)
-            await dynamo_service.create_or_update_user(user.model_dump())
-            request.session['user'] = user.model_dump()
+            user_data, is_new_user = await dynamo_service.create_or_update_user(user.model_dump()) # Capture is_new_user flag
+            request.session['user'] = user_data
+            if is_new_user:
+                send_welcome_email(user.email, user.full_name) # Send email if it's a new user
             return RedirectResponse(url="http://localhost:3000/dashboard")
         else:
             raise HTTPException(
