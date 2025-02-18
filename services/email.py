@@ -1,4 +1,3 @@
-import os
 import resend
 from config.settings import settings
 
