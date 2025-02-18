@@ -10,7 +10,6 @@ from models.videos import VideoCreate, VideoDetail, VideoList, VideoStatus, Vide
 from services.dynamo import DynamoDBService
 from dependencies.auth import get_current_user
 from tasks.video_processor import start_video_pipeline
-from services.email import send_welcome_email
 
 
 router = APIRouter(prefix="/videos", tags=["videos"])
@@ -42,10 +41,10 @@ async def create_video(
     
     # do something like this 
     # request.session['user'].update({
-    #     'videos_created_today': updated_user.get('videos_created_today', 0),
-    #     'last_video_created_at': updated_user.get('last_video_created_at'),
-    #     'subscription_tier': updated_user.get('subscription_tier'),
-    #     'daily_video_limit': updated_user.get('daily_video_limit')
+    #     'first_name': "ian"
+    #     # 'last_video_created_at': updated_user.get('last_video_created_at'),
+    #     # 'subscription_tier': updated_user.get('subscription_tier'),
+    #     # 'daily_video_limit': updated_user.get('daily_video_limit')
     # })
     return video
 
@@ -74,7 +73,7 @@ async def video_status(video_id: str, user_id: str = Depends(get_current_user)):
             if video["creation_status"] in [VideoStatus.COMPLETED.value, VideoStatus.FAILED.value]:
                 break
                 
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
     
     return EventSourceResponse(event_generator(), media_type="text/event-stream")
 
