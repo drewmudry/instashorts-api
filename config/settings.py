@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     aws_secret_access_key: str
     aws_region: str = "us-east-1"
     gemini_api_key: str
+    elevenlabs_api_key: str
+    s3_bucket_name: str
     redis_url: str = Field(..., alias="REDIS_URL")
 
     # Redis SSL Configuration

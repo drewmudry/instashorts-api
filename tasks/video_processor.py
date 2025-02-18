@@ -50,7 +50,8 @@ def generate_script_task(self, video_id: str, user_id: str):
 @celery.task(bind=True, max_retries=3)
 def generate_voice_task(self, previous_result):  # Takes previous result
     try:
-        video_id = previous_result['video_id']  # Extract video_id
+        video_id = previous_result['video_id']
+        user_id = previous_result['user_id']
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
@@ -59,9 +60,7 @@ def generate_voice_task(self, previous_result):  # Takes previous result
         )
 
         # Generate voice
-        # generate_voice(video_id) # Example
-
-        time.sleep(3)  # Keep for demonstration
+        generate_voice(video_id, user_id, dynamo_service)
 
         dynamo_service.update_video(
             video_id=video_id,
@@ -78,8 +77,6 @@ def generate_voice_task(self, previous_result):  # Takes previous result
             }
         )
         raise self.retry(exc=e, countdown=60)
-
-# ... (Similar changes for generate_prompts_task, generate_images_task, compile_video_task)
 
 @celery.task(bind=True, max_retries=3)
 def generate_prompts_task(self, previous_result):
@@ -168,7 +165,7 @@ def start_video_pipeline(video_id: str, user_id: str):
     print("we in start_video_pipeline")
     pipeline = chain(
         generate_script_task.s(video_id, user_id), # done? but slow... 
-        generate_voice_task.s(),  # No arguments here
+        generate_voice_task.s(),  # working on rn
         generate_prompts_task.s(), # No arguments here
         generate_images_task.s(), # No arguments here
         compile_video_task.s()  # No arguments here
