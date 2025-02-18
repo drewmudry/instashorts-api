@@ -38,6 +38,14 @@ async def create_video(
     video = dynamo.create_video(video_data)
     # Start the Celery pipeline
     start_video_pipeline(video['id'], user_id)
+    
+    # do something like this 
+    # request.session['user'].update({
+    #     'videos_created_today': updated_user.get('videos_created_today', 0),
+    #     'last_video_created_at': updated_user.get('last_video_created_at'),
+    #     'subscription_tier': updated_user.get('subscription_tier'),
+    #     'daily_video_limit': updated_user.get('daily_video_limit')
+    # })
     return video
 
 
