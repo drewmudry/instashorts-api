@@ -1,5 +1,5 @@
 import json
-from google import genai
+from openai import OpenAI
 from typing import Tuple
 import logging
 from services.dynamo import DynamoDBService
@@ -17,34 +17,37 @@ def generate_script_and_title(video_id: str, user_id: str, dynamo: DynamoDBServi
         video = dynamo.get_video(video_id, user_id)
         if not video:
             raise ScriptGenerationError(f"Video {video_id} not found")
-        client = genai.Client(api_key=settings.gemini_api_key)
+        
+        client = OpenAI(api_key=settings.openai_api_key)
         
         max_retries = 3
         attempt = 0
         
         while attempt < max_retries:
             try:
-                prompt = (
-                    f"Create a script and title for a video about {video['topic']}. \n"
-                    f"the script should be an entertaining story written from a narriators point of view so it can be read off by one person."
-                    f"Make sure the script is approx 250 words as the video is meant to be 60-65 seconds. \n"
-                    f"You must respond with valid JSON data in this exact format, with no additional text before or after:\n"
-                    f"{{\n"
-                    f"  \"title\": \"your title here\",\n"
-                    f"  \"script\": \"your script here\"\n"
-                    f"}}"
+                messages = [
+                    {"role": "system", "content": "You are a creative script writer who creates entertaining stories that can be narrated in videos."},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Create a script and title for a video about {video['topic']}. "
+                            f"The script should be an entertaining story written from a narrator's point of view "
+                            f"so it can be read off by one person. "
+                            f"Make sure the script is approx 250 words as the video is meant to be 60-65 seconds. "
+                            f"Respond with valid JSON data only in this exact format: "
+                            f'{{"title": "your title here", "script": "your script here"}}'
+                        )
+                    }
+                ]
+                
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=500
                 )
                 
-                response = client.models.generate_content(
-                    model="gemini-1.5-pro",
-                    contents=prompt
-                )
-                
-                # Get the response text and clean it
-                response_text = response.text
-                
-                # Remove markdown code blocks if present
-                response_text = response_text.replace('```json\n', '').replace('\n```', '')
+                response_text = response.choices[0].message.content
                 
                 try:
                     content = json.loads(response_text)

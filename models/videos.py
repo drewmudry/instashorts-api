@@ -37,6 +37,7 @@ class VideoBase(BaseModel):
     creation_status: VideoStatus
     title: Optional[str] = None
     series: Optional[str]
+    created_at: datetime
 
 
 class VideoCreate(VideoBase):

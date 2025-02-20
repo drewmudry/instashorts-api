@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     aws_access_key_id: str
     aws_secret_access_key: str
     aws_region: str = "us-east-1"
-    gemini_api_key: str
+    openai_api_key: str
     elevenlabs_api_key: str
     s3_bucket_name: str
     resend_api_key: str
