@@ -11,7 +11,6 @@ dynamo_service = DynamoDBService()
 
 @router.get("/login/google")
 async def google_login(request: Request):
-    print(f"WE HERE: {settings.backend_url}")
     redirect_uri = f"{settings.backend_url}/auth/google/callback"
     return await request.app.oauth.google.authorize_redirect(request, redirect_uri)
 
