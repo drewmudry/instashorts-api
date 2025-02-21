@@ -8,8 +8,6 @@ def send_welcome_email(email: str, name: str = ""):
     try:
         # Get the template path
         template_path = Path(__file__).parent / "templates" / "welcome_email.html"
-        
-        # Read the template and replace placeholders
         with open(template_path, "r") as file:
             html_content = file.read()
             html_content = html_content.replace("{email}", email)
