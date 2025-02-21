@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your InstaShorts Video is Ready!</title>
+</head>
+<body style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.5; color: #1f2937; margin: 0; padding: 0; background-color: #f9fafb;">
+    <table cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff; border-collapse: collapse;">
+        <!-- Header -->
+        <tr>
+            <td style="padding: 24px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+                <div style="font-size: 28px; font-weight: 700; color: #44efc4;">InstaShorts</div>
+                <div style="font-size: 16px; color: #6b7280; margin-top: 8px;">Your video is ready to share!</div>
+            </td>
+        </tr>
+        
+        <!-- Content -->
+        <tr>
+            <td style="padding: 32px 24px;">
+                <h1 style="color: #111827; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 16px;">Your Video Is Ready!</h1>
+                
+                <p style="margin-bottom: 16px;">Hi there,</p>
+                
+                <p style="margin-bottom: 24px;">Great news! Your InstaShorts video "<strong>{title}</strong>" has been successfully created and is ready to share with the world. We can't wait to see how your audience responds to your amazing content!</p>
+                
+                <!-- Video Preview -->
+                <div style="margin: 32px 0; text-align: center;">
+                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; max-width: 100%; margin-bottom: 16px;">
+                        <img src="/api/placeholder/480/270" alt="Video thumbnail" style="width: 100%; height: auto; display: block;" />
+                        <div style="padding: 12px; text-align: center; background-color: #f9fafb;">
+                            <div style="font-weight: bold;">{video_title}</div>
+                            <div style="color: #6b7280; font-size: 14px;">{duration} • Created on {created_at}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CTA Buttons -->
+                <div style="text-align: center; margin: 32px 0;">
+                    <a href="https://instashorts.io/videos/{video_id}" style="display: inline-block; padding: 12px 24px; background-color: #44efc4; color: black; text-decoration: none; border-radius: 4px; font-weight: bold; margin-bottom: 12px; width: 80%; max-width: 300px;">View Your Video</a>
+                    
+                    <!-- for auto publishing -->
+                    <!-- <div style="margin-top: 16px; display: flex; justify-content: center; gap: 12px;">
+                        <a href="https://instashorts.io/share/{video_id}/instagram" style="display: inline-block; padding: 8px 16px; background-color: #f3f4f6; color: #374151; text-decoration: none; border-radius: 4px; font-size: 14px;">Share to Instagram</a>
+                        <a href="https://instashorts.io/share/{video_id}/tiktok" style="display: inline-block; padding: 8px 16px; background-color: #f3f4f6; color: #374151; text-decoration: none; border-radius: 4px; font-size: 14px;">Share to TikTok</a>
+                        <a href="https://instashorts.io/share/{video_id}/youtube" style="display: inline-block; padding: 8px 16px; background-color: #f3f4f6; color: #374151; text-decoration: none; border-radius: 4px; font-size: 14px;">Share to YouTube</a>
+                    </div> -->
+                </div>
+                
+                <!-- What's Next -->
+                <!-- <div style="margin: 32px 0;">
+                    <h2 style="font-size: 20px; margin-bottom: 16px; color: #111827;">What's Next?</h2>
+                    <div style="margin-bottom: 16px; display: flex; align-items: flex-start;">
+                        <span style="display: inline-block; width: 28px; height: 28px; background-color: #44efc4; color: white; border-radius: 9999px; text-align: center; line-height: 28px; margin-right: 12px; font-weight: bold;">1</span>
+                        <div>
+                            <strong>Share your video</strong> - Publish directly to your social media platforms.
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 16px; display: flex; align-items: flex-start;">
+                        <span style="display: inline-block; width: 28px; height: 28px; background-color: #44efc4; color: white; border-radius: 9999px; text-align: center; line-height: 28px; margin-right: 12px; font-weight: bold;">2</span>
+                        <div>
+                            <strong>Track performance</strong> - Monitor engagement and reach in your dashboard.
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 16px; display: flex; align-items: flex-start;">
+                        <span style="display: inline-block; width: 28px; height: 28px; background-color: #44efc4; color: white; border-radius: 9999px; text-align: center; line-height: 28px; margin-right: 12px; font-weight: bold;">3</span>
+                        <div>
+                            <strong>Create your next video</strong> - Keep your audience engaged with consistent content.
+                        </div>
+                    </div>
+                </div> -->
+                
+                <p style="margin-bottom: 8px;">Happy sharing!</p>
+                
+                <p style="margin-bottom: 24px;">The InstaShorts Team</p>
+            </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+            <td style="padding: 24px; text-align: center; font-size: 14px; color: #6b7280; border-top: 1px solid #e5e7eb;">                
+                <p style="margin-bottom: 8px;">© 2025 InstaShorts. All rights reserved.</p>
+                <p style="font-size: 12px; color: #9ca3af;">
+                    You're receiving this email because you signed up for InstaShorts.<br>
+                    If you prefer not to receive emails from us, you can <a href="https://api.instashorts.io/unsubscribe?email={email}" style="color: #6b7280; text-decoration: underline;">unsubscribe</a>.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
