@@ -13,5 +13,6 @@ celery_app.conf.update({
     },
     'redis_backend_use_ssl': {
         'ssl_cert_reqs': CERT_NONE
+        
     }
 })
