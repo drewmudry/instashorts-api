@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from enum import Enum
 from datetime import datetime
 
@@ -38,6 +38,12 @@ class VideoBase(BaseModel):
     title: Optional[str] = None
     series: Optional[str]
     created_at: datetime
+    
+    @field_validator('created_at', mode='before')
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            return datetime.fromisoformat(value)
+        return value
 
 
 class VideoCreate(VideoBase):

@@ -132,7 +132,8 @@ class DynamoDBService:
                 img_prompts=img_prompts,
                 audio_url=video_data.get('audio_url'),
                 images=images,
-                final_url=video_data.get('final_url')
+                final_url=video_data.get('final_url'),
+                created_at=video_data['created_at']
             )
                 
         except ClientError as e:
