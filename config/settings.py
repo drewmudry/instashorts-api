@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     s3_bucket_name: str
     resend_api_key: str
     redis_url: str = Field(..., alias="REDIS_URL")
-    frontend_url: str
-    backend_url: str
+    frontend_url: str = Field(..., alias="FRONTEND_URL")
+    backend_url: str = Field(..., alias="BACKEND_URL")
 
     # Redis SSL Configuration
     redis_ssl_config: dict = {

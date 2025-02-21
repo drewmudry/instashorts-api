@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, status
 from starlette.responses import RedirectResponse, JSONResponse
 from models.user import User
 from services.dynamo import DynamoDBService
-from config.settings import Settings
+from config.settings import settings
 from services.email import send_welcome_email
 from fastapi import BackgroundTasks
 
@@ -11,7 +11,8 @@ dynamo_service = DynamoDBService()
 
 @router.get("/login/google")
 async def google_login(request: Request):
-    redirect_uri = f"{Settings.backend_url}/auth/google/callback"
+    print(f"WE HERE: {settings.backend_url}")
+    redirect_uri = f"{settings.backend_url}/auth/google/callback"
     return await request.app.oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback")
@@ -28,7 +29,7 @@ async def google_auth_callback(request: Request, background_tasks: BackgroundTas
             if is_new_user:
                 background_tasks.add_task(send_welcome_email, user.email, user.full_name) 
                 
-            return RedirectResponse(url=f"{Settings.frontend_url}/dashboard")
+            return RedirectResponse(url=f"{settings.frontend_url}/dashboard")
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
