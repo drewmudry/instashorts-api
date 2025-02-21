@@ -14,7 +14,6 @@ def send_welcome_email(email: str, name: str = ""):
             html_content = file.read()
             html_content = html_content.replace("{email}", email)
             
-            # If we have a name, personalize the greeting
             if name:
                 html_content = html_content.replace("Hi there,", f"Hi {name},")
             
