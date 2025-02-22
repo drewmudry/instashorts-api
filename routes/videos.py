@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 import asyncio
 import json
-from typing import AsyncGenerator
+from decimal import Decimal
 from typing import Optional
 from typing import List
 from datetime import datetime
@@ -49,6 +49,12 @@ async def create_video(
     return video
 
 
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
 @router.get("/{video_id}/status")
 async def video_status(video_id: str, user_id: str = Depends(get_current_user)):
     async def event_generator():
@@ -65,8 +71,13 @@ async def video_status(video_id: str, user_id: str = Depends(get_current_user)):
                 except ValueError:
                     video["creation_status"] = VideoStatus.FAILED.value
             
+            # Remove img_prompts from the response
+            if "img_prompts" in video:
+                del video["img_prompts"]
+            
+            # Use the custom encoder to handle Decimal values
             yield {
-                "data": json.dumps(video)
+                "data": json.dumps(video, cls=DecimalEncoder)
             }
             
             # Compare with enum values instead of raw strings

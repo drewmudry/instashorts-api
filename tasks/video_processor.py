@@ -82,13 +82,14 @@ def generate_voice_task(self, previous_result):  # Takes previous result
 def generate_prompts_task(self, previous_result):
     try:
         video_id = previous_result['video_id']
+        user_id = previous_result['user_id']
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
                 "creation_status": VideoStatus.GENERATING_PROMPTS.value
             }
         )
-        time.sleep(3)
+        generate_prompts(video_id, user_id, dynamo_service)
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
@@ -167,7 +168,7 @@ def start_video_pipeline(video_id: str, user_id: str):
         # chain means args passed into the 1st task will be passed to the 2nd and so on 
         generate_script_task.s(video_id, user_id), # done
         generate_voice_task.s(),  # done
-        generate_prompts_task.s(), # No arguments here
+        generate_prompts_task.s(), # done
         generate_images_task.s(), # No arguments here
         compile_video_task.s()  # No arguments here
     )
