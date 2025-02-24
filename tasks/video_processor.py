@@ -110,19 +110,25 @@ def generate_prompts_task(self, previous_result):
 def generate_images_task(self, previous_result):
     try:
         video_id = previous_result['video_id']
+        user_id = previous_result['user_id']
+        
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
                 "creation_status": VideoStatus.GENERATING_IMAGES.value
             }
         )
-        time.sleep(3)
+        
+        from services.video_generation.images import generate_images
+        generate_images(video_id, user_id, dynamo_service)
+        
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
                 "creation_status": VideoStatus.IMAGES_COMPLETE.value
             }
         )
+        
         return previous_result
     except Exception as e:
         dynamo_service.update_video(

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     openai_api_key: str
     elevenlabs_api_key: str
-    getimg_api_key: str
+    GETIMG_AKI_KEY: str
     s3_bucket_name: str
     resend_api_key: str
     redis_url: str = Field(..., alias="REDIS_URL")
