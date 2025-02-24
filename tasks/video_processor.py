@@ -175,7 +175,7 @@ def start_video_pipeline(video_id: str, user_id: str):
         generate_script_task.s(video_id, user_id), # done
         generate_voice_task.s(),  # done
         generate_prompts_task.s(), # done
-        generate_images_task.s(), # No arguments here
+        generate_images_task.s(), # maybe done
         compile_video_task.s()  # No arguments here
     )
     pipeline.apply_async()
