@@ -35,7 +35,7 @@ def generate_single_image(prompt: str, index: int, video_id: str) -> Dict:
             "height": 1280,
             "steps": 5,
             "output_format": "png",
-            "response_format": "b64"
+            "response_format": "b64" # recieve image b64 encoded
         }
         
         response = requests.post(url, headers=headers, json=payload)
@@ -133,10 +133,8 @@ def generate_images(video_id: str, user_id: str, dynamo_service: DynamoDBService
         if not generated_images:
             raise ImageGenerationError("No images were successfully generated")
         
-        # Sort images by index
         generated_images.sort(key=lambda x: x['index'])
         
-        # Update the video in DynamoDB with generated images
         dynamo_service.update_video(
             video_id=video_id,
             update_data={"images": generated_images}
@@ -147,4 +145,4 @@ def generate_images(video_id: str, user_id: str, dynamo_service: DynamoDBService
         
     except Exception as e:
         logger.error(f"Error in generate_images: {str(e)}")
-        raise  # Re-raise to ensure task failure
+        raise
