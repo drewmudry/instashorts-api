@@ -82,7 +82,7 @@ def compile_video(video_id, user_id, dynamo_service):
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
-                "video_url": video_url
+                "final_url": video_url
             }
         )
         

@@ -54,7 +54,7 @@ class DynamoDBService:
                 'ExpressionAttributeValues': {
                     ':uid': user_id
                 },
-                'ProjectionExpression': 'id, user_id, topic, voice, title, creation_status, final_url, series, created_at',
+                'ProjectionExpression': 'id, user_id, topic, voice, title, creation_status, final_url, series, created_at, video_url',
                 'ScanIndexForward': False,
                 'Limit': 20
             }

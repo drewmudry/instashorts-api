@@ -163,7 +163,7 @@ def compile_video_task(self, previous_result):
             video_id=video_id,
             update_data={
                 "creation_status": VideoStatus.COMPLETED.value,
-                "video_url": video_url
+                "final_url": video_url
             }
         )
         

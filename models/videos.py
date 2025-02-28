@@ -38,6 +38,7 @@ class VideoBase(BaseModel):
     title: Optional[str] = None
     series: Optional[str]
     created_at: datetime
+    final_url: Optional[str] = None
     
     @field_validator('created_at', mode='before')
     def parse_created_at(cls, value):
@@ -64,4 +65,3 @@ class VideoDetail(VideoBase):
     img_prompts: Optional[List[ImagePrompt]] = None
     audio_url: Optional[str] = None
     images: Optional[List[GeneratedImage]] = None
-    final_url: Optional[str] = None
