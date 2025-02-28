@@ -143,27 +143,42 @@ def generate_images_task(self, previous_result):
 def compile_video_task(self, previous_result):
     try:
         video_id = previous_result['video_id']
+        user_id = previous_result['user_id']
+        
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
                 "creation_status": VideoStatus.COMPILING.value
             }
         )
-        time.sleep(3)
+        
+        # Import the compile_video function
+        from services.video_generation.compiler import compile_video
+        
+        # Call the video compilation function
+        video_url = compile_video(video_id, user_id, dynamo_service)
+        
+        # Update the video record with the completed status
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
-                "creation_status": VideoStatus.COMPLETED.value
+                "creation_status": VideoStatus.COMPLETED.value,
+                "video_url": video_url
             }
         )
+        
         return previous_result
     except Exception as e:
+        # Update DynamoDB with failure status
         dynamo_service.update_video(
             video_id=video_id,
             update_data={
                 "creation_status": VideoStatus.FAILED.value,
             }
         )
+        # Log the error
+        print(f"Error compiling video {video_id}: {str(e)}")
+        # Retry the task
         raise self.retry(exc=e, countdown=60)
 
 
@@ -175,7 +190,7 @@ def start_video_pipeline(video_id: str, user_id: str):
         generate_script_task.s(video_id, user_id), # done
         generate_voice_task.s(),  # done
         generate_prompts_task.s(), # done
-        generate_images_task.s(), # maybe done
+        generate_images_task.s(), # done
         compile_video_task.s()  # No arguments here
     )
     pipeline.apply_async()

@@ -35,6 +35,12 @@ async def create_video(
         "title": ""
     }
     
+    voices = [ "pNInz6obpgDQGcFmaJgB", "nPczCjzI2devNBz1zQrb", "piTKgcLEGmPE4e6mEKli", "2EiwWnXFnvU5JabPnv8n", "ThT5KcBeYPX3keUQqHPh",
+        "29vD33N1CtxCmqQRPOHJ","jsCqWAovK2LkecY7zXl4", "ZQe5CZNOzWyzPSCn5a3c", "cgSgspJ2msm6clMCkdW9", "EXAVITQu4vr4xnSDxMaL", "GBv7mTt0atIp3Br8iCZE"
+    ]
+    if request.voice not in voices: 
+        raise HTTPException(status_code=400, detail="Voice not supported")
+    
     video = dynamo.create_video(video_data)
     # Start the Celery pipeline
     start_video_pipeline(video['id'], user_id)
