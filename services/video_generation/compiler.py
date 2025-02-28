@@ -112,10 +112,15 @@ def upload_to_s3(file_path, video_id):
     # S3 key (path) for the video
     s3_key = f"videos/{video_id}.mp4"
     
-    # Upload the file
-    s3_client.upload_file(file_path, bucket_name, s3_key)
+    # Upload the file with public-read ACL
+    s3_client.upload_file(
+        file_path, 
+        bucket_name, 
+        s3_key,
+        ExtraArgs={'ACL': 'public-read'}
+    )
     
-    # Generate URL for the uploaded file
+    # Generate a permanent URL
     url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
     
     return url
