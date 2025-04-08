@@ -8,10 +8,10 @@ celery_app = Celery('video_processor')
 celery_app.conf.update({
     'broker_url': settings.redis_url,
     'result_backend': settings.redis_url,
-    'broker_use_ssl': {
-        'ssl_cert_reqs': CERT_NONE
-    },
-    'redis_backend_use_ssl': {
-        'ssl_cert_reqs': CERT_NONE
-    }
+    # 'broker_use_ssl': {
+    #     'ssl_cert_reqs': CERT_NONE
+    # },
+    # 'redis_backend_use_ssl': {
+    #     'ssl_cert_reqs': CERT_NONE
+    # }
 })

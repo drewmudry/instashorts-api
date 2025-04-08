@@ -20,12 +20,13 @@ async def list_videos(user_id: str = Depends(get_current_user)):
     videos = dynamo.get_user_videos(user_id)
     return videos
 
-
 @router.post("/", response_model=VideoCreate)
 async def create_video(
     request: VideoRequest,
     user_id: str = Depends(get_current_user)
 ):
+    print(f"[1] Starting video creation with topic: {request.topic}")
+    
     video_data = {
         "user_id": user_id,
         "topic": request.topic,
@@ -35,23 +36,33 @@ async def create_video(
         "title": ""
     }
     
+    print(f"[2] Video data prepared: {video_data}")
+    
     voices = [ "pNInz6obpgDQGcFmaJgB", "nPczCjzI2devNBz1zQrb", "piTKgcLEGmPE4e6mEKli", "2EiwWnXFnvU5JabPnv8n", "ThT5KcBeYPX3keUQqHPh",
         "29vD33N1CtxCmqQRPOHJ","jsCqWAovK2LkecY7zXl4", "ZQe5CZNOzWyzPSCn5a3c", "cgSgspJ2msm6clMCkdW9", "EXAVITQu4vr4xnSDxMaL", "GBv7mTt0atIp3Br8iCZE"
     ]
     if request.voice not in voices: 
+        print(f"[X] Invalid voice: {request.voice}")
         raise HTTPException(status_code=400, detail="Voice not supported")
     
-    video = dynamo.create_video(video_data)
-    # Start the Celery pipeline
-    start_video_pipeline(video['id'], user_id)
+    print(f"[3] About to create video in DynamoDB")
+    try:
+        video = dynamo.create_video(video_data)
+        print(f"[4] Video created in DynamoDB with ID: {video['id']}")
+    except Exception as e:
+        print(f"[X] Error creating video in DynamoDB: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
-    # do something like this 
-    # request.session['user'].update({
-    #     'first_name': "ian"
-    #     # 'last_video_created_at': updated_user.get('last_video_created_at'),
-    #     # 'subscription_tier': updated_user.get('subscription_tier'),
-    #     # 'daily_video_limit': updated_user.get('daily_video_limit')
-    # })
+    print(f"[5] About to start Celery pipeline for video ID: {video['id']}")
+    try:
+        # Start the Celery pipeline
+        start_video_pipeline(video['id'], user_id)
+        print(f"[6] Celery pipeline started for video ID: {video['id']}")
+    except Exception as e:
+        print(f"[X] Error starting Celery pipeline: {str(e)}")
+        # Note: We continue even if pipeline fails, so user gets a response
+    
+    print(f"[7] Returning response for video ID: {video['id']}")
     return video
 
 

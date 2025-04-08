@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     @classmethod
     def ensure_rediss_protocol(cls, v: str) -> str:
         if v.startswith('redis://'):
-            v = 'rediss://' + v[8:]
-        elif not v.startswith('rediss://'):
-            v = 'rediss://' + v
+            v = 'redis://' + v[8:]
+        elif not v.startswith('redis://'):
+            v = 'redis://' + v
         return v
 
     class Config:

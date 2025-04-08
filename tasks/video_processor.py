@@ -16,6 +16,7 @@ dynamo_service = DynamoDBService()
 @celery.task(bind=True, max_retries=3)
 def generate_script_task(self, video_id: str, user_id: str):
     try:
+        logger.info(f"Starting generate_script_task for video_id: {video_id}, user_id: {user_id}")
         print(f"we in generate_script_task for {video_id}")
         dynamo_service.update_video(
             video_id=video_id,
@@ -182,9 +183,12 @@ def compile_video_task(self, previous_result):
         raise self.retry(exc=e, countdown=60)
 
 
+import logging
+logger = logging.getLogger(__name__)
+
 def start_video_pipeline(video_id: str, user_id: str):
     """Start the Celery pipeline for video generation"""
-    print("we in start_video_pipeline")
+    logger.info(f"Starting video pipeline")
     pipeline = chain(
         # chain means args passed into the 1st task will be passed to the 2nd and so on 
         generate_script_task.s(video_id, user_id), # done
