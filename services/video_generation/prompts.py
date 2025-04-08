@@ -40,7 +40,7 @@ def generate_prompts(video_id: str, user_id: str, dynamo: DynamoDBService) -> Li
                             f"The script for the video is: \n\n{video['script']}\n\n"
                             f"Each prompt should describe a detailed, visually compelling scene that matches a part of the script. "
                             f"The prompts will be used to generate images for a short video, so they should flow together to tell the story. "
-                            f"Make the prompts descriptive, detailed, and visually interesting. "
+                            f"Make the prompts descriptive, detailed, and visually interesting. Add an overarching visual theme to the prompts that is consistant across all prompts. "
                             "Respond with valid JSON data only in this exact format: "
                             '{"prompts": [{"index": 0, "prompt": "description for first image"}, '
                             '{"index": 1, "prompt": "description for second image"}, ...]}'
