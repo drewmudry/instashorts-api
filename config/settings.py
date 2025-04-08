@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     frontend_url: str
     backend_url: str
 
+    # stripe
+    stripe_secret_key: str
+    # stripe_webhook_secret: str
+    # stripe_basic_price_id: str
+    # stripe_premium_price_id: str
+    # stripe_enterprise_price_id: str
+
     # Redis SSL Configuration
     redis_ssl_config: dict = {
         'ssl_cert_reqs': CERT_NONE
