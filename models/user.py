@@ -9,8 +9,9 @@ class User(BaseModel):
     family_name: Optional[str] = None
     picture: Optional[str] = None
     disabled: Optional[bool] = False
-    subscription_tier: str = None
+    subscription_tier: Optional[str] = None
     active_subscription: bool = False
+    stripe_customer_id: Optional[str] = None
 
     @classmethod
     def from_google_oauth(cls, userinfo: dict):
