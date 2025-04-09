@@ -166,6 +166,10 @@ class DynamoDBService:
 
 
     async def create_or_update_user(self, user_data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+        # Import the Stripe service here to avoid circular imports
+        from services.stripe import StripeService
+        stripe_service = StripeService()
+        
         is_new_user = False
         existing_user = await self.get_user(user_data['id'])
         current_time = datetime.now(timezone.utc).isoformat()
@@ -173,16 +177,28 @@ class DynamoDBService:
         try:
             if not existing_user:
                 is_new_user = True
-                self.users_table.put_item(Item={
+                
+                # For new users, create a Stripe customer
+                stripe_customer_id = await stripe_service.create_customer(user_data)
+                
+                # Prepare user data with Stripe info and default subscription values
+                new_user_data = {
                     'id': user_data['id'],
                     'email': user_data['email'],
                     'full_name': user_data['full_name'],
                     'picture': user_data.get('picture', ''),
                     'last_login': current_time,
                     'created_at': current_time,
-                    'updated_at': current_time
-                })
+                    'updated_at': current_time,
+                    'stripe_customer_id': stripe_customer_id,
+                    'subscription_tier': 'free',
+                    'active_subscription': False
+                }
+                
+                self.users_table.put_item(Item=new_user_data)
+                user_data = new_user_data
             else:
+                # For existing users, preserve subscription and Stripe data
                 self.users_table.update_item(
                     Key={'id': user_data['id']},
                     UpdateExpression="""
@@ -200,11 +216,41 @@ class DynamoDBService:
                         ':updated_at': current_time
                     }
                 )
+                
+                # Add existing user's Stripe and subscription data to the returned user_data
+                if existing_user.get('stripe_customer_id'):
+                    user_data['stripe_customer_id'] = existing_user['stripe_customer_id']
+                if existing_user.get('subscription_tier'):
+                    user_data['subscription_tier'] = existing_user['subscription_tier']
+                if existing_user.get('active_subscription'):
+                    user_data['active_subscription'] = existing_user['active_subscription']
+                if existing_user.get('subscription_id'):
+                    user_data['subscription_id'] = existing_user['subscription_id']
+                
             return user_data, is_new_user
         except ClientError as e:
             raise Exception(f"Could not create/update user: {str(e)}")
         
-
+    async def find_user_by_stripe_customer_id(self, stripe_customer_id: str) -> Optional[Dict[str, Any]]:
+        """Find a user by their Stripe customer ID"""
+        try:
+            # Use a scan operation with a filter expression
+            # Note: In a production environment with many users, you should create
+            # a global secondary index on stripe_customer_id for better performance
+            response = self.users_table.scan(
+                FilterExpression=boto3.dynamodb.conditions.Attr('stripe_customer_id').eq(stripe_customer_id)
+            )
+            
+            items = response.get('Items', [])
+            if items:
+                # Return the first matching user
+                return items[0]
+            return None
+        except ClientError as e:
+            print(f"Error finding user by Stripe customer ID: {str(e)}")
+            return None
+        
+    
     async def create_series(self, series_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             self.series_table.put_item(Item=series_data)
