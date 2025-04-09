@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
 from config.settings import settings
-from routes import auth, videos, series
+from routes import auth, videos, series, webhooks
 
 app = FastAPI(title="InstaShorts API")
 
@@ -41,6 +41,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(videos.router)
 app.include_router(series.router)
+app.include_router(webhooks.router)
 
 @app.get("/")
 async def root():
