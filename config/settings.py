@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     openai_api_key: str
     elevenlabs_api_key: str
-    GETIMG_AKI_KEY: str
+    GETIMG_API_KEY: str
     s3_bucket_name: str
     resend_api_key: str
     redis_url: str = Field(..., alias="REDIS_URL")
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     backend_url: str
 
     # stripe
-    stripe_secret_key: str
+    # stripe_secret_key: str
     # stripe_webhook_secret: str
     # stripe_basic_price_id: str
     # stripe_premium_price_id: str

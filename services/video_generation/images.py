@@ -24,7 +24,7 @@ def generate_single_image(prompt: str, index: int, video_id: str) -> Dict:
         headers = {
             "accept": "application/json",
             "content-type": "application/json",
-            "Authorization": f"Bearer {settings.GETIMG_AKI_KEY}"
+            "Authorization": f"Bearer {settings.GETIMG_API_KEY}"
         }
         
         logger.info(f"Generating image {index} with prompt: {prompt[:50]}...")
