@@ -13,6 +13,19 @@ build:
 run:
 	@go run cmd/api/main.go
 
+# Run the worker
+run-worker:
+	@go run cmd/worker/main.go
+
+up:
+	@echo "Starting all services with Docker Compose..."
+	@docker-compose up --build
+
+# Stop all services
+down:
+	@echo "Stopping all services..."
+	@docker-compose down
+
 # Create DB container
 docker-run:
 	@if docker compose up --build 2>/dev/null; then \

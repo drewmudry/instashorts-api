@@ -1,7 +1,39 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database only
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app # Mounts your local code into the container for hot-reload
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/instashorts?sslmode=disable
+      - REDIS_URL=redis:6379
+    depends_on:
+      - postgres
+      - redis
+    command: ["air", "-c", ".air.toml"] # Use Air for hot-reloading
+
+  # Worker Service
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app # Mounts local code so changes are reflected
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/instashorts?sslmode=disable
+      - REDIS_URL=redis:6379
+    depends_on:
+      - postgres
+      - redis
+    command: ["go", "run", "cmd/worker/main.go"] # Command to start the worker
+
+  # PostgreSQL Database
   postgres:
     image: postgres:15
     restart: unless-stopped
@@ -10,7 +42,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"  # Using standard port
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,5 +51,14 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  redis_data:
