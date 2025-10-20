@@ -59,6 +59,12 @@ func NewServer() (*Server, error) {
 	// Create Gin router with CORS middleware
 	router := gin.Default()
 
+	// Add database to context middleware
+	router.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Next()
+	})
+
 	// Add CORS middleware for your frontend
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", os.Getenv("FRONTEND_URL"))

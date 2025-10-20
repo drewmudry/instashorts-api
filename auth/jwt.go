@@ -7,8 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/drewmudry/instashorts-api/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 type Claims struct {
@@ -54,31 +56,51 @@ func ValidateJWT(tokenString string) (*Claims, error) {
 	return nil, errors.New("invalid token")
 }
 
-// Middleware to protect routes
+// Middleware to protect routes using session validation
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "No authorization header"})
+		// Get session token from cookie
+		sessionToken, err := c.Cookie("session_token")
+		if err != nil || sessionToken == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No authentication token provided"})
 			c.Abort()
 			return
 		}
 
-		// Remove "Bearer " prefix if present
-		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-			tokenString = tokenString[7:]
-		}
-
-		claims, err := ValidateJWT(tokenString)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		// Get database from context (we'll need to pass it in)
+		db, exists := c.Get("db")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not available"})
 			c.Abort()
 			return
 		}
+
+		// Validate session in database
+		var session models.Session
+		result := db.(*gorm.DB).Preload("User").Where("session_token = ?", sessionToken).First(&session)
+
+		if result.Error != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
+			c.Abort()
+			return
+		}
+
+		// Check if session is expired
+		if session.IsExpired() {
+			// Delete expired session
+			db.(*gorm.DB).Delete(&session)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
+			c.Abort()
+			return
+		}
+
+		// Update last accessed time
+		session.UpdateLastAccessed(db.(*gorm.DB))
 
 		// Add user info to context
-		c.Set("user_id", claims.UserID)
-		c.Set("email", claims.Email)
+		c.Set("user_id", session.UserID)
+		c.Set("email", session.User.Email)
+		c.Set("session", &session)
 		c.Next()
 	}
 }
