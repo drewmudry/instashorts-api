@@ -1,26 +1,35 @@
 package series
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/drewmudry/instashorts-api/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
 type Handler struct {
-	DB *gorm.DB
+	DB    *gorm.DB
+	Redis *redis.Client
 }
 
-func NewHandler(db *gorm.DB) *Handler {
-	return &Handler{DB: db}
+func NewHandler(db *gorm.DB, rdb *redis.Client) *Handler {
+	return &Handler{DB: db, Redis: rdb}
 }
 
 type CreateSeriesRequest struct {
 	Title       string `json:"title" binding:"required"`
 	Description string `json:"description"`
 	PostsPerDay int    `json:"posts_per_day" binding:"required,min=1,max=3"`
+}
+
+type SeriesCreatedMessage struct {
+	SeriesID    uint `json:"series_id"`
+	PostsPerDay int  `json:"posts_per_day"`
 }
 
 func (h *Handler) CreateSeries(c *gin.Context) {
@@ -41,6 +50,21 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 	if err := h.DB.Create(&series).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create series"})
 		return
+	}
+
+	// Publish message to Redis
+	message := SeriesCreatedMessage{
+		SeriesID:    series.ID,
+		PostsPerDay: series.PostsPerDay,
+	}
+	payload, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Error marshalling json: %v", err)
+	} else {
+		err := h.Redis.Publish(c.Request.Context(), "series_created", payload).Err()
+		if err != nil {
+			log.Printf("Error publishing to redis: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, series)

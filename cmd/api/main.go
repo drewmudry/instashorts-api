@@ -5,21 +5,22 @@ import (
 	"log"
 	"os"
 
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-
 	"github.com/drewmudry/instashorts-api/auth"
 	"github.com/drewmudry/instashorts-api/referrals"
 	"github.com/drewmudry/instashorts-api/series"
 	stripehandlers "github.com/drewmudry/instashorts-api/stripe"
 	"github.com/drewmudry/instashorts-api/webhooks"
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Server struct {
 	DB     *gorm.DB
+	Redis  *redis.Client
 	Router *gin.Engine
 }
 
@@ -60,6 +61,15 @@ func NewServer() (*Server, error) {
 
 	log.Println("Database connected successfully")
 
+	// Initialize Redis client
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		redisURL = "localhost:6379"
+	}
+	rdb := redis.NewClient(&redis.Options{
+		Addr: redisURL,
+	})
+
 	// Create Gin router with CORS middleware
 	router := gin.Default()
 
@@ -86,6 +96,7 @@ func NewServer() (*Server, error) {
 
 	server := &Server{
 		DB:     db,
+		Redis:  rdb,
 		Router: router,
 	}
 
@@ -121,7 +132,7 @@ func (s *Server) setupRoutes() {
 	referralHandler := referrals.NewHandler(s.DB)
 	stripeHandler := stripehandlers.NewHandler(s.DB)
 	webhookHandler := webhooks.NewHandler(s.DB)
-	seriesHandler := series.NewHandler(s.DB)
+	seriesHandler := series.NewHandler(s.DB, s.Redis)
 
 	// Public routes
 	// Root route - no auth needed
