@@ -58,7 +58,7 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 
-	log.Println("✅ Database connected successfully")
+	log.Println("Database connected successfully")
 
 	// Create Gin router with CORS middleware
 	router := gin.Default()
