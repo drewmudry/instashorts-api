@@ -20,12 +20,6 @@ func NewGoogleOAuth() *GoogleOAuth {
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	redirectURL := os.Getenv("GOOGLE_REDIRECT_URL")
 
-	// Debug logging to verify env vars are loaded
-	fmt.Printf("🔐 OAuth Config:\n")
-	fmt.Printf("  Client ID: %s\n", clientID)
-	fmt.Printf("  Redirect URL: %s\n", redirectURL)
-	fmt.Printf("  Client Secret: %s\n", maskSecret(clientSecret))
-
 	return &GoogleOAuth{
 		Config: &oauth2.Config{
 			ClientID:     clientID,

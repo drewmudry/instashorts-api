@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +20,12 @@ type Handler struct {
 	GoogleOAuth *GoogleOAuth
 }
 
+// OAuthState contains both CSRF token and referral code
+type OAuthState struct {
+	CSRF    string `json:"csrf"`
+	RefCode string `json:"ref_code,omitempty"`
+}
+
 func NewHandler(db *gorm.DB) *Handler {
 	return &Handler{
 		DB:          db,
@@ -26,14 +35,31 @@ func NewHandler(db *gorm.DB) *Handler {
 
 // InitiateGoogleLogin starts the OAuth flow
 func (h *Handler) InitiateGoogleLogin(c *gin.Context) {
-	// Generate state token for CSRF protection
-	state := generateStateToken()
+	// Generate CSRF token for security
+	csrfToken := generateStateToken()
 
-	// Store state in session or cache (implement based on your needs)
-	c.SetCookie("oauth_state", state, 3600, "/", "", false, true)
+	// Capture referral code from query parameter (e.g., ?ref=drew)
+	refCode := c.Query("ref")
 
-	// Generate the OAuth URL
-	url := h.GoogleOAuth.Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	// Create OAuthState object with CSRF and referral code
+	oauthState := OAuthState{
+		CSRF:    csrfToken,
+		RefCode: refCode,
+	}
+
+	// JSON marshal and Base64 encode the state
+	stateJSON, err := json.Marshal(oauthState)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create state"})
+		return
+	}
+	encodedState := base64.URLEncoding.EncodeToString(stateJSON)
+
+	// Store only the CSRF token in the cookie (for verification)
+	c.SetCookie("oauth_state", csrfToken, 3600, "/", "", false, true)
+
+	// Generate the OAuth URL with the encoded state
+	url := h.GoogleOAuth.Config.AuthCodeURL(encodedState, oauth2.AccessTypeOffline)
 
 	// Redirect directly to Google OAuth
 	c.Redirect(http.StatusTemporaryRedirect, url)
@@ -41,11 +67,25 @@ func (h *Handler) InitiateGoogleLogin(c *gin.Context) {
 
 // GoogleCallback handles the OAuth callback
 func (h *Handler) GoogleCallback(c *gin.Context) {
-	// Verify state token
-	state := c.Query("state")
-	storedState, _ := c.Cookie("oauth_state")
+	// Get the encoded state from query parameter
+	encodedState := c.Query("state")
+	storedCSRF, _ := c.Cookie("oauth_state")
 
-	if state != storedState {
+	// Base64 decode and JSON unmarshal the state
+	stateJSON, err := base64.URLEncoding.DecodeString(encodedState)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state encoding"})
+		return
+	}
+
+	var oauthState OAuthState
+	if err := json.Unmarshal(stateJSON, &oauthState); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state format"})
+		return
+	}
+
+	// Verify CSRF token matches the stored cookie
+	if oauthState.CSRF != storedCSRF {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state token"})
 		return
 	}
@@ -70,7 +110,6 @@ func (h *Handler) GoogleCallback(c *gin.Context) {
 
 	if result.Error == gorm.ErrRecordNotFound {
 		// Create new user
-
 		user = models.User{
 			GoogleID:      googleUser.ID,
 			Email:         googleUser.Email,
@@ -80,6 +119,17 @@ func (h *Handler) GoogleCallback(c *gin.Context) {
 			FamilyName:    googleUser.FamilyName,
 			Picture:       googleUser.Picture,
 			Locale:        googleUser.Locale,
+		}
+
+		// Check if a referral code was provided in the OAuth state
+		if oauthState.RefCode != "" {
+			// Find the referrer by their referral code
+			var referrer models.User
+			if err := h.DB.Where("referral_code = ?", oauthState.RefCode).First(&referrer).Error; err == nil {
+				// Referrer found - link this new user to them
+				user.ReferredByUserID = &referrer.ID
+			}
+			// Note: If referrer not found, we silently continue (invalid/expired code)
 		}
 
 		if err := h.DB.Create(&user).Error; err != nil {
@@ -168,7 +218,11 @@ func (h *Handler) Logout(c *gin.Context) {
 }
 
 func generateStateToken() string {
-	// Implement a secure random state generator
-	// For now, a simple implementation:
-	return fmt.Sprintf("%d", time.Now().UnixNano())
+	// Generate a cryptographically secure random token
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to timestamp-based token if random fails
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return base64.URLEncoding.EncodeToString(b)
 }

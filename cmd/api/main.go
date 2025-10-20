@@ -12,6 +12,9 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/drewmudry/instashorts-api/auth"
+	"github.com/drewmudry/instashorts-api/referrals"
+	stripehandlers "github.com/drewmudry/instashorts-api/stripe"
+	"github.com/drewmudry/instashorts-api/webhooks"
 )
 
 type Server struct {
@@ -112,14 +115,23 @@ func (s *Server) setupRoutes() {
 		})
 	})
 
-	// Create auth handler
+	// Create handlers
 	authHandler := auth.NewHandler(s.DB)
+	referralHandler := referrals.NewHandler(s.DB)
+	stripeHandler := stripehandlers.NewHandler(s.DB)
+	webhookHandler := webhooks.NewHandler(s.DB)
 
 	// Public routes
 	// Root route - no auth needed
 	s.Router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Instashorts API v1"})
 	})
+
+	// Webhook routes (public - no auth, but signature verified in handler)
+	webhookRoutes := s.Router.Group("/webhooks")
+	{
+		webhookRoutes.POST("/stripe", webhookHandler.HandleStripeWebhook)
+	}
 
 	// Auth routes (public - no auth middleware)
 	authRoutes := s.Router.Group("/auth")
@@ -132,10 +144,24 @@ func (s *Server) setupRoutes() {
 		authRoutes.GET("/me", auth.AuthMiddleware(), authHandler.GetCurrentUser)
 	}
 
-	// Other protected routes that require authentication
+	// Protected routes that require authentication
 	protected := s.Router.Group("")
 	protected.Use(auth.AuthMiddleware())
 	{
+		// Referral endpoints
+		referralRoutes := protected.Group("/referrals")
+		{
+			referralRoutes.POST("/code", referralHandler.SetReferralCode)
+			referralRoutes.GET("/stats", referralHandler.GetReferralStats)
+		}
+
+		// Stripe Connect endpoints
+		stripeRoutes := protected.Group("/stripe")
+		{
+			stripeRoutes.POST("/connect-onboarding", stripeHandler.CreateConnectOnboardingLink)
+			stripeRoutes.GET("/connect-status", stripeHandler.GetConnectAccountStatus)
+		}
+
 		// Example protected route
 		protected.GET("/protected", func(c *gin.Context) {
 			userID := c.GetUint("user_id")
