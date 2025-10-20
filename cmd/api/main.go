@@ -13,6 +13,7 @@ import (
 
 	"github.com/drewmudry/instashorts-api/auth"
 	"github.com/drewmudry/instashorts-api/referrals"
+	"github.com/drewmudry/instashorts-api/series"
 	stripehandlers "github.com/drewmudry/instashorts-api/stripe"
 	"github.com/drewmudry/instashorts-api/webhooks"
 )
@@ -120,6 +121,7 @@ func (s *Server) setupRoutes() {
 	referralHandler := referrals.NewHandler(s.DB)
 	stripeHandler := stripehandlers.NewHandler(s.DB)
 	webhookHandler := webhooks.NewHandler(s.DB)
+	seriesHandler := series.NewHandler(s.DB)
 
 	// Public routes
 	// Root route - no auth needed
@@ -160,6 +162,14 @@ func (s *Server) setupRoutes() {
 		{
 			stripeRoutes.POST("/connect-onboarding", stripeHandler.CreateConnectOnboardingLink)
 			stripeRoutes.GET("/connect-status", stripeHandler.GetConnectAccountStatus)
+		}
+
+		// Series routes
+		seriesRoutes := protected.Group("/series")
+		{
+			seriesRoutes.POST("", seriesHandler.CreateSeries)
+			seriesRoutes.GET("", seriesHandler.GetUserSeries)
+			seriesRoutes.GET("/:id/videos", seriesHandler.GetSeriesVideos)
 		}
 
 		// Example protected route

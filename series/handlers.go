@@ -2,6 +2,7 @@ package series
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/drewmudry/instashorts-api/models"
 	"github.com/gin-gonic/gin"
@@ -54,4 +55,34 @@ func (h *Handler) GetUserSeries(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, series)
+}
+
+func (h *Handler) GetSeriesVideos(c *gin.Context) {
+	seriesIDStr := c.Param("id")
+	seriesID, err := strconv.ParseUint(seriesIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid series ID"})
+		return
+	}
+
+	userID := c.GetUint("user_id")
+
+	// First, verify the series belongs to the user
+	var series models.Series
+	if err := h.DB.First(&series, "id = ? AND user_id = ?", seriesID, userID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Series not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		}
+		return
+	}
+
+	var videos []models.Video
+	if err := h.DB.Where("series_id = ?", seriesID).Find(&videos).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve videos"})
+		return
+	}
+
+	c.JSON(http.StatusOK, videos)
 }
