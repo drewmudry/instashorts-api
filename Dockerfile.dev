@@ -1,0 +1,24 @@
+# Development Dockerfile for Go API with hot reload
+FROM golang:1.24-alpine AS development
+
+# Install make and Air for hot reload (using v1.52.3 which is compatible with Go 1.24)
+RUN apk add --no-cache make && \
+    go install github.com/air-verse/air@v1.52.3
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 8080
+
+# Default command (will be overridden by docker-compose)
+CMD ["air", "-c", "air.toml"]
