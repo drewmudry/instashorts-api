@@ -18,7 +18,22 @@ services:
       - redis
     command: ["air", "-c", ".air.toml"] # Use Air for hot-reloading
 
-  # Worker Service
+  # Scheduler Service (Runs cron job scheduling - only run ONE)
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app # Mounts local code so changes are reflected
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/instashorts?sslmode=disable
+      - REDIS_URL=redis:6379
+    depends_on:
+      - postgres
+      - redis
+    command: ["go", "run", "cmd/scheduler/main.go"] # Command to start the scheduler
+
+  # Worker Service (Processes video tasks - safe to scale)
   worker1:
     build:
       context: .
