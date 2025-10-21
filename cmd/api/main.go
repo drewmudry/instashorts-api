@@ -6,16 +6,14 @@ import (
 	"os"
 
 	"github.com/drewmudry/instashorts-api/auth"
+	"github.com/drewmudry/instashorts-api/internal/platform"
 	"github.com/drewmudry/instashorts-api/referrals"
 	"github.com/drewmudry/instashorts-api/series"
 	stripehandlers "github.com/drewmudry/instashorts-api/stripe"
 	"github.com/drewmudry/instashorts-api/webhooks"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type Server struct {
@@ -25,50 +23,9 @@ type Server struct {
 }
 
 func NewServer() (*Server, error) {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
-
-	// Get database URL from environment
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "postgres://postgres:postgres@localhost:5432/instashorts?sslmode=disable"
-	}
-
-	// Connect to database with GORM
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info), // Set to logger.Silent in production
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Get underlying SQL database to configure connection pool
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	// Configure connection pool
-	sqlDB.SetMaxOpenConns(25)
-	sqlDB.SetMaxIdleConns(5)
-
-	// Test the connection
-	if err := sqlDB.Ping(); err != nil {
-		return nil, err
-	}
-
-	log.Println("Database connected successfully")
-
-	// Initialize Redis client
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		redisURL = "localhost:6379"
-	}
-	rdb := redis.NewClient(&redis.Options{
-		Addr: redisURL,
-	})
+	// Use the shared connection initializers
+	db := platform.NewDBConnection()
+	rdb := platform.NewRedisClient()
 
 	// Create Gin router with CORS middleware
 	router := gin.Default()

@@ -32,6 +32,13 @@ type SeriesCreatedMessage struct {
 	PostsPerDay int  `json:"posts_per_day"`
 }
 
+type VideoProcessingTask struct {
+	VideoID uint `json:"video_id"`
+}
+
+const videoProcessingQueue = "video_processing_queue"
+const seriesCreatedChannel = "series_created"
+
 func (h *Handler) CreateSeries(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	var req CreateSeriesRequest
@@ -45,6 +52,7 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 		Title:       req.Title,
 		Description: req.Description,
 		PostsPerDay: req.PostsPerDay,
+		IsActive:    true, //
 	}
 
 	if err := h.DB.Create(&series).Error; err != nil {
@@ -52,7 +60,34 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 		return
 	}
 
-	// Publish message to Redis
+	for i := 0; i < series.PostsPerDay; i++ {
+		// 1. Create the 'pending' video record in the database
+		video := models.Video{
+			SeriesID: series.ID,
+			Status:   "pending",
+		}
+		if err := h.DB.Create(&video).Error; err != nil {
+			log.Printf("Error creating pending video record: %v", err)
+			continue // Don't fail the whole request
+		}
+
+		// 2. Publish a task for the worker to process this specific video
+		task := VideoProcessingTask{VideoID: video.ID}
+		payload, err := json.Marshal(task)
+		if err != nil {
+			log.Printf("Error marshalling video task: %v", err)
+			continue
+		}
+
+		err = h.Redis.Publish(c.Request.Context(), videoProcessingQueue, payload).Err()
+		if err != nil {
+			log.Printf("Error publishing to %s: %v", videoProcessingQueue, err)
+		} else {
+			log.Printf("Queued initial video %d for series %d", video.ID, series.ID)
+		}
+	}
+
+	// Publish message to Redis for the *daily scheduler*
 	message := SeriesCreatedMessage{
 		SeriesID:    series.ID,
 		PostsPerDay: series.PostsPerDay,
@@ -61,9 +96,9 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error marshalling json: %v", err)
 	} else {
-		err := h.Redis.Publish(c.Request.Context(), "series_created", payload).Err()
+		err := h.Redis.Publish(c.Request.Context(), seriesCreatedChannel, payload).Err()
 		if err != nil {
-			log.Printf("Error publishing to redis: %v", err)
+			log.Printf("Error publishing to %s: %v", seriesCreatedChannel, err)
 		}
 	}
 
