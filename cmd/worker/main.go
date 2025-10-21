@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"time"
 
-	"github.com/drewmudry/instashorts-api/internal/platform" // <-- IMPORT
+	"github.com/drewmudry/instashorts-api/internal/platform"
 	"github.com/drewmudry/instashorts-api/models"
 	"github.com/go-redis/redis/v8"
 	"github.com/robfig/cron/v3"
@@ -23,7 +24,13 @@ type VideoProcessingTask struct {
 	VideoID uint `json:"video_id"`
 }
 
+// Example task for a chained pipeline
+type VideoRenderTask struct {
+	VideoID uint `json:"video_id"`
+}
+
 const videoProcessingQueue = "video_processing_queue"
+const videoRenderingQueue = "video_rendering_queue" // Example for chaining
 const seriesCreatedChannel = "series_created"
 
 func main() {
@@ -48,7 +55,9 @@ func main() {
 	select {}
 }
 
-// listenForNewSeries subscribes to `series_created` and adds cron jobs
+// listenForNewSeries subscribes to `series_created` and adds cron jobs.
+// This uses Pub/Sub, so you should only run one instance of the worker service
+// to avoid scheduling duplicate cron jobs.
 func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *cron.Cron) {
 	pubsub := rdb.Subscribe(ctx, seriesCreatedChannel)
 	defer pubsub.Close()
@@ -65,18 +74,12 @@ func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *
 
 		log.Printf("Received new series %d, scheduling %d posts per day", message.SeriesID, message.PostsPerDay)
 
-		// Create a local copy of the message for the closure
-		// to avoid race conditions in the loop.
 		m := message
 
-		// Schedule a new cron job for this series.
-		// "@daily" runs once a day at midnight. You can change this,
-		// e.g., "@every 24h" or more specific cron specs.
-		_, err := c.AddFunc("@every 1m", func() {
+		// Schedule a new cron job for this series to run daily at midnight.
+		_, err := c.AddFunc("@daily", func() {
 			log.Printf("Running daily job for series %d: queuing %d videos", m.SeriesID, m.PostsPerDay)
 
-			// This job's only role is to QUEUE the tasks.
-			// The other worker will process them.
 			for i := 0; i < m.PostsPerDay; i++ {
 				video := models.Video{
 					SeriesID: m.SeriesID,
@@ -94,9 +97,10 @@ func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *
 					continue
 				}
 
-				err = rdb.Publish(ctx, videoProcessingQueue, payload).Err()
+				// CORRECT: Use LPUSH to add the task to the queue
+				err = rdb.LPush(ctx, videoProcessingQueue, payload).Err()
 				if err != nil {
-					log.Printf("Error publishing daily task to %s: %v", videoProcessingQueue, err)
+					log.Printf("Error pushing daily task to queue %s: %v", videoProcessingQueue, err)
 				}
 			}
 		})
@@ -106,42 +110,65 @@ func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *
 	}
 }
 
-// listenForVideoTasks subscribes to `video_processing_queue` and does the work
+// listenForVideoTasks uses a Redis List as a queue to process tasks.
+// This is safe to run on multiple worker instances.
 func listenForVideoTasks(ctx context.Context, db *gorm.DB, rdb *redis.Client) {
-	pubsub := rdb.Subscribe(ctx, videoProcessingQueue)
-	defer pubsub.Close()
-	ch := pubsub.Channel()
+	log.Println("Processor listening for video tasks on the queue...")
 
-	log.Println("Processor listening for video tasks...")
+	for { // Loop indefinitely
+		// CORRECT: BRPop is a blocking command that waits for a task and atomically pops it.
+		// This ensures only one worker receives any given task.
+		result, err := rdb.BRPop(ctx, 0, videoProcessingQueue).Result()
+		if err != nil {
+			log.Printf("Error popping from queue %s: %v", videoProcessingQueue, err)
+			time.Sleep(1 * time.Second)
+			continue
+		}
 
-	for msg := range ch {
+		taskPayload := result[1]
+
 		var task VideoProcessingTask
-		if err := json.Unmarshal([]byte(msg.Payload), &task); err != nil {
+		if err := json.Unmarshal([]byte(taskPayload), &task); err != nil {
 			log.Printf("Error unmarshalling %s message: %v", videoProcessingQueue, err)
 			continue
 		}
 
 		log.Printf("Received task to process video %d", task.VideoID)
 
-		// --- THIS IS YOUR VIDEO WORKFLOW ---
-		// 1. Fetch the video record
 		var video models.Video
 		if err := db.First(&video, task.VideoID).Error; err != nil {
 			log.Printf("Video %d not found: %v", task.VideoID, err)
 			continue
 		}
 
-		// 2. Mark as processing
-		db.Model(&video).Update("status", "processing")
-		log.Printf("Processing video %d...", video.ID)
+		db.Model(&video).Update("status", "processing_script")
+		log.Printf("Generating script for video %d...", video.ID)
 
-		// 3. TODO: Add your actual video generation logic here
-		// (e.g., call OpenAI, generate script, render video)
-		// time.Sleep(30 * time.Second) // Simulate long-running task
+		// --- EXAMPLE OF A PIPELINE ---
+		// 1. TODO: Add your script generation logic here.
+		// time.Sleep(10 * time.Second) // Simulate work
 
-		// 4. Mark as completed (or failed)
-		// For now, we'll just mark it "completed"
-		db.Model(&video).Update("status", "completed")
-		log.Printf("Completed processing video %d", video.ID)
+		// 2. After script is done, chain to the next step by publishing a new task.
+		renderTask := VideoRenderTask{VideoID: video.ID}
+		payload, err := json.Marshal(renderTask)
+		if err != nil {
+			log.Printf("Error marshalling render task for video %d: %v", video.ID, err)
+			db.Model(&video).Update("status", "failed_script")
+			continue
+		}
+
+		// Push the next task to the next queue
+		err = rdb.LPush(ctx, videoRenderingQueue, payload).Err()
+		if err != nil {
+			log.Printf("Error pushing to render queue for video %d: %v", video.ID, err)
+			db.Model(&video).Update("status", "failed_script")
+			continue
+		}
+
+		log.Printf("Script complete for video %d. Queued for rendering.", video.ID)
+		db.Model(&video).Update("status", "pending_render")
+
+		// Another worker function would be listening on `videoRenderingQueue`
+		// to complete the next step.
 	}
 }

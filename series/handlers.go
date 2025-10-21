@@ -79,7 +79,7 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 			continue
 		}
 
-		err = h.Redis.Publish(c.Request.Context(), videoProcessingQueue, payload).Err()
+		err = h.Redis.LPush(c.Request.Context(), videoProcessingQueue, payload).Err()
 		if err != nil {
 			log.Printf("Error publishing to %s: %v", videoProcessingQueue, err)
 		} else {
