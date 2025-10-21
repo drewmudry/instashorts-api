@@ -170,5 +170,6 @@ func listenForVideoTasks(ctx context.Context, db *gorm.DB, rdb *redis.Client) {
 
 		// Another worker function would be listening on `videoRenderingQueue`
 		// to complete the next step.
+		db.Model(&video).Update("status", "complete")
 	}
 }

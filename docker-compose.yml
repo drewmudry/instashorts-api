@@ -19,7 +19,7 @@ services:
     command: ["air", "-c", ".air.toml"] # Use Air for hot-reloading
 
   # Worker Service
-  worker:
+  worker1:
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -32,6 +32,20 @@ services:
       - postgres
       - redis
     command: ["go", "run", "cmd/worker/main.go"] # Command to start the worker
+  
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app # Mounts local code so changes are reflected
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/instashorts?sslmode=disable
+      - REDIS_URL=redis:6379
+    depends_on:
+      - postgres
+      - redis
+    command: ["go", "run", "cmd/worker/main.go"]
 
   # PostgreSQL Database
   postgres:
