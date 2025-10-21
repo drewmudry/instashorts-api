@@ -108,9 +108,17 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 func (h *Handler) GetUserSeries(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	var series []models.Series
+
 	if err := h.DB.Where("user_id = ?", userID).Find(&series).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve series"})
 		return
+	}
+
+	// Populate video count for each series
+	for i := range series {
+		var count int64
+		h.DB.Model(&models.Video{}).Where("series_id = ?", series[i].ID).Count(&count)
+		series[i].VideoCount = int(count)
 	}
 
 	c.JSON(http.StatusOK, series)

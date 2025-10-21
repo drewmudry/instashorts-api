@@ -14,6 +14,9 @@ type Series struct {
 	IsActive    bool      `gorm:"default:true" json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+
+	// Video count (computed field, not persisted)
+	VideoCount int `gorm:"-" json:"video_count"`
 }
 
 func (Series) TableName() string {
