@@ -20,15 +20,17 @@ func main() {
 
 	// Register all task handlers
 	proc.Register(tasks.QueueVideoTitle, proc.HandleTitleGeneration)
+	proc.Register(tasks.QueueSceneGeneration, proc.HandleSceneGeneration)
 	proc.Register(tasks.QueueVideoScript, proc.HandleScriptGeneration)
-	proc.Register(tasks.QueueVideoRender, proc.HandleRenderVideo)
+	// proc.Register(tasks.QueueVideoRender, proc.HandleRenderVideo) // DISABLED: rendering has issues
 
 	log.Println("Worker started, waiting for queue tasks...")
 
 	// Start listening. This is a blocking call.
 	proc.Listen(ctx,
 		tasks.QueueVideoTitle,
+		tasks.QueueSceneGeneration,
 		tasks.QueueVideoScript,
-		tasks.QueueVideoRender,
+		// tasks.QueueVideoRender, // DISABLED: rendering has issues
 	)
 }

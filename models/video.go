@@ -11,6 +11,8 @@ type Video struct {
 	Script    string    `gorm:"type:text" json:"script,omitempty"`
 	Status    string    `gorm:"default:'pending'" json:"status"`
 	CreatedAt time.Time `json:"created_at"`
+
+	Scenes []VideoScene `gorm:"foreignKey:VideoID" json:"scenes,omitempty"` //
 }
 
 func (Video) TableName() string {

@@ -10,10 +10,13 @@ const (
 	// QueueVideoTitle is the first step: Generate a title.
 	QueueVideoTitle = "q_video_title"
 
-	// QueueVideoScript is the second step: Generate a script.
+	// QueueSceneGeneration is the new second step: Generate scenes and prompts. (NEW)
+	QueueSceneGeneration = "q_scene_generation"
+
+	// QueueVideoScript is the old second/new third step: Generate a script.
 	QueueVideoScript = "q_video_script"
 
-	// QueueVideoRender is the third step: Render the video.
+	// QueueVideoRender is the third/new fourth step: Render the video.
 	QueueVideoRender = "q_video_render"
 )
 
@@ -27,15 +30,23 @@ type TitleTaskPayload struct {
 	VideoID uint `json:"video_id"`
 }
 
+// SceneTaskPayload is the payload for QueueSceneGeneration (NEW)
+type SceneTaskPayload struct {
+	VideoID uint `json:"video_id"`
+}
+
 // ScriptTaskPayload is the payload for QueueVideoScript
 type ScriptTaskPayload struct {
 	VideoID uint `json:"video_id"`
 }
 
-// RenderTaskPayload is the payload for QueueVideoRender
+// RenderTaskPayload is the payload for QueueVideoRender (DISABLED)
 type RenderTaskPayload struct {
 	VideoID uint `json:"video_id"`
 }
+
+// VideoRenderTaskPayload is an alias for RenderTaskPayload
+type VideoRenderTaskPayload = RenderTaskPayload
 
 // ---
 // HELPER FUNCTIONS

@@ -9,17 +9,18 @@ import (
 	"strings"
 
 	"github.com/drewmudry/instashorts-api/models"
-	"github.com/invopop/jsonschema"
+	"github.com/invopop/jsonschema" //
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 )
 
 // TitleResponse represents the JSON response from OpenAI
 type TitleResponse struct {
-	Title string `json:"title" jsonschema_description:"A unique, engaging title for the video"`
+	Title string `json:"title" jsonschema_description:"A unique, engaging title for the video"` //
 }
 
-// GenerateSchema generates a JSON schema for structured outputs
+// GenerateSchema generates a JSON schema for structured outputs.
+// This is exported (capitalized) so it can be used by other files in the 'processing' package (like scene.go).
 func GenerateSchema[T any]() interface{} {
 	reflector := &jsonschema.Reflector{
 		AllowAdditionalProperties: false,
@@ -31,10 +32,16 @@ func GenerateSchema[T any]() interface{} {
 }
 
 // titleResponseSchema is the cached schema
-var titleResponseSchema = GenerateSchema[TitleResponse]()
+var titleResponseSchema interface{}
+
+// init runs once when the package is initialized and safely sets the schema.
+func init() {
+	titleResponseSchema = GenerateSchema[TitleResponse]()
+}
 
 // GenerateTitle calls OpenAI to generate a unique title for a video
 func GenerateTitle(ctx context.Context, series models.Series, existingTitles []string) (string, error) {
+	// ... (rest of the function is the same)
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		return "", fmt.Errorf("OPENAI_API_KEY environment variable not set")
