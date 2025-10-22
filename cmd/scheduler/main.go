@@ -67,7 +67,7 @@ func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *
 		m := message
 
 		// Schedule a new cron job for this series to run daily at midnight.
-		_, err := c.AddFunc("@every 1m", func() {
+		_, err := c.AddFunc("@every 3m", func() {
 			log.Printf("Running daily job for series %d: queuing %d videos", m.SeriesID, m.PostsPerDay)
 
 			for i := 0; i < m.PostsPerDay; i++ {
