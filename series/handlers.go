@@ -134,7 +134,6 @@ func (h *Handler) GetSeriesVideos(c *gin.Context) {
 
 	userID := c.GetUint("user_id")
 
-	// First, verify the series belongs to the user
 	var series models.Series
 	if err := h.DB.First(&series, "id = ? AND user_id = ?", seriesID, userID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
