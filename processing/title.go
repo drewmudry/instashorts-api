@@ -58,6 +58,7 @@ Generate a unique, engaging title for the next video in this series. The title s
 - Be different from all existing titles
 - Be catchy and engaging
 - Be under 100 characters
+- Be niched down to a specific topic or theme
 
 Respond in JSON format with this structure:
 {
