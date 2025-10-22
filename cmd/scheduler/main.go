@@ -1,3 +1,4 @@
+// drewmudry/instashorts-api/cmd/scheduler/main.go
 package main
 
 import (
@@ -7,6 +8,7 @@ import (
 
 	"github.com/drewmudry/instashorts-api/internal/platform"
 	"github.com/drewmudry/instashorts-api/models"
+	"github.com/drewmudry/instashorts-api/tasks"
 	"github.com/go-redis/redis/v8"
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
@@ -18,12 +20,6 @@ type SeriesCreatedMessage struct {
 	PostsPerDay int  `json:"posts_per_day"`
 }
 
-// Task for processing a single video
-type VideoProcessingTask struct {
-	VideoID uint `json:"video_id"`
-}
-
-const videoProcessingQueue = "video_processing_queue"
 const seriesCreatedChannel = "series_created"
 
 func main() {
@@ -46,8 +42,6 @@ func main() {
 }
 
 // listenForNewSeries subscribes to `series_created` and adds cron jobs.
-// This uses Pub/Sub, so you should only run one instance of this service
-// to avoid scheduling duplicate cron jobs.
 func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *cron.Cron) {
 	pubsub := rdb.Subscribe(ctx, seriesCreatedChannel)
 	defer pubsub.Close()
@@ -66,7 +60,8 @@ func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *
 
 		m := message
 
-		// Schedule a new cron job for this series to run daily at midnight.
+		// Schedule a new cron job for this series
+		// (NOTE: Your "@every 3m" is for testing, change to "@daily" or similar for prod)
 		_, err := c.AddFunc("@every 3m", func() {
 			log.Printf("Running daily job for series %d: queuing %d videos", m.SeriesID, m.PostsPerDay)
 
@@ -80,17 +75,16 @@ func listenForNewSeries(ctx context.Context, db *gorm.DB, rdb *redis.Client, c *
 					continue
 				}
 
-				task := VideoProcessingTask{VideoID: video.ID}
+				task := tasks.TitleTaskPayload{VideoID: video.ID}
 				payload, err := json.Marshal(task)
 				if err != nil {
 					log.Printf("Error marshalling daily video task: %v", err)
 					continue
 				}
 
-				// Use LPUSH to add the task to the queue
-				err = rdb.LPush(ctx, videoProcessingQueue, payload).Err()
+				err = rdb.LPush(ctx, tasks.QueueVideoTitle, payload).Err()
 				if err != nil {
-					log.Printf("Error pushing daily task to queue %s: %v", videoProcessingQueue, err)
+					log.Printf("Error pushing daily task to queue %s: %v", tasks.QueueVideoTitle, err)
 				}
 			}
 		})

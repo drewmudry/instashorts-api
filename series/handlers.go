@@ -1,3 +1,4 @@
+// drewmudry/instashorts-api/series/handlers.go
 package series
 
 import (
@@ -7,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/drewmudry/instashorts-api/models"
+	"github.com/drewmudry/instashorts-api/tasks"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
@@ -32,11 +34,6 @@ type SeriesCreatedMessage struct {
 	PostsPerDay int  `json:"posts_per_day"`
 }
 
-type VideoProcessingTask struct {
-	VideoID uint `json:"video_id"`
-}
-
-const videoProcessingQueue = "video_processing_queue"
 const seriesCreatedChannel = "series_created"
 
 func (h *Handler) CreateSeries(c *gin.Context) {
@@ -72,16 +69,18 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 		}
 
 		// 2. Publish a task for the worker to process this specific video
-		task := VideoProcessingTask{VideoID: video.ID}
+		//    USING THE NEW TASK DEFINITION
+		task := tasks.TitleTaskPayload{VideoID: video.ID} // <-- USE NEW PAYLOAD
 		payload, err := json.Marshal(task)
 		if err != nil {
 			log.Printf("Error marshalling video task: %v", err)
 			continue
 		}
 
-		err = h.Redis.LPush(c.Request.Context(), videoProcessingQueue, payload).Err()
+		//    USING THE NEW QUEUE NAME
+		err = h.Redis.LPush(c.Request.Context(), tasks.QueueVideoTitle, payload).Err() // <-- USE NEW QUEUE
 		if err != nil {
-			log.Printf("Error publishing to %s: %v", videoProcessingQueue, err)
+			log.Printf("Error publishing to %s: %v", tasks.QueueVideoTitle, err)
 		} else {
 			log.Printf("Queued initial video %d for series %d", video.ID, series.ID)
 		}
@@ -105,6 +104,7 @@ func (h *Handler) CreateSeries(c *gin.Context) {
 	c.JSON(http.StatusOK, series)
 }
 
+// ... (GetUserSeries and GetSeriesVideos remain unchanged) ...
 func (h *Handler) GetUserSeries(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	var series []models.Series
@@ -146,10 +146,12 @@ func (h *Handler) GetSeriesVideos(c *gin.Context) {
 	}
 
 	var videos []models.Video
+	// This query will now automatically pull `title` and `script`
 	if err := h.DB.Where("series_id = ?", seriesID).Find(&videos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve videos"})
 		return
 	}
 
+	// This JSON response will now contain `title` and `script`
 	c.JSON(http.StatusOK, videos)
 }
