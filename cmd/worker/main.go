@@ -20,8 +20,8 @@ func main() {
 
 	// Register all task handlers
 	proc.Register(tasks.QueueVideoTitle, proc.HandleTitleGeneration)
-	// proc.Register(tasks.QueueVideoScript, proc.HandleScriptGeneration)
-	// proc.Register(tasks.QueueVideoRender, proc.HandleRenderVideo)
+	proc.Register(tasks.QueueVideoScript, proc.HandleScriptGeneration)
+	proc.Register(tasks.QueueVideoRender, proc.HandleRenderVideo)
 
 	log.Println("Worker started, waiting for queue tasks...")
 
